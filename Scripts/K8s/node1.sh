@@ -10,8 +10,9 @@ git clone https://github.com/otomato-gh/container.training.git
 
 ### For multi-nodes setup
 ./container.training/prepare-vms/setup_kubeadm.sh
-#kubeadm init
-kubeadm init --apiserver-advertise-address 192.168.70.8
+
+kubeadm config images pull
+kubeadm init --config /vagrant/Scripts/K8s/k8s_master.yml --node-name node1.local
 mkdir -p $HOME/.kube
 sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
 sudo chown $(id -u):$(id -g) $HOME/.kube/config
@@ -21,10 +22,9 @@ sysctl net.bridge.bridge-nf-call-iptables=1
 export kubever=$(kubectl version | base64 | tr -d '\n')
 kubectl apply -f https://cloud.weave.works/k8s/net?k8s-version=$kubever
 
-#kubectl get nodes -w
 kubectl taint nodes --all node-role.kubernetes.io/master-
 # kubeadm token create --print-join-command
-
+exit 0
 # cd /vagrant/Git/container.training/dockercoins
 #docker-compose up --scale worker=10 -d
 # docker-compose logs
