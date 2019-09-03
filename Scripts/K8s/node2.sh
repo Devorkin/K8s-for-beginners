@@ -1,7 +1,7 @@
 #! /bin/bash
 
 # Install needed packages
-apt install -y httping
+apt update && apt install -y httping
 
 git clone https://github.com/otomato-gh/container.training.git
 ./container.training/prepare-vms/setup_kubeadm.sh
