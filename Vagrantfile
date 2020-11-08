@@ -45,7 +45,7 @@ Vagrant.configure("2") do |config|
         # end
         node1.vm.provider "virtualbox" do |node1ADV|
             node1ADV.customize ["modifyvm", :id, "--cpus", "2"]
-            node1ADV.customize ["modifyvm", :id, "--memory", 3072]
+            node1ADV.customize ["modifyvm", :id, "--memory",5120]
             node1ADV.customize ["guestproperty", "set", :id, "/VirtualBox/GuestAdd/VBoxService/--timesync-set-threshold", 10000]
         end
         node1.vm.provision :shell, :inline => "sudo /vagrant/Scripts/K8s/node1.sh", run: "always"
@@ -70,7 +70,7 @@ Vagrant.configure("2") do |config|
         # end
         node2.vm.provider "virtualbox" do |node2ADV|
             node2ADV.customize ["modifyvm", :id, "--cpus", "2"]
-            node2ADV.customize ["modifyvm", :id, "--memory", 3072]
+            node2ADV.customize ["modifyvm", :id, "--memory", 5120]
             node2ADV.customize ["guestproperty", "set", :id, "/VirtualBox/GuestAdd/VBoxService/--timesync-set-threshold", 10000]
         end
         node2.vm.provision :shell, :inline => "sudo /vagrant/Scripts/K8s/node2.sh", run: "always"
