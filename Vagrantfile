@@ -1,78 +1,118 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+# All Vagrant configuration is done below. The "2" in Vagrant.configure
+# configures the configuration version (we support older styles for
+# backwards compatibility). Please don't change it unless you know what
+# you're doing.
 Vagrant.configure("2") do |config|
-    config.vbguest.auto_update = true
-    config.vm.provider "virtualbox"
+  # The most common configuration options are documented and commented below.
+  # For a complete reference, please see the online documentation at
+  # https://docs.vagrantup.com.
 
-    # Vagrant minimum requierments:
-    wantedversion = '2.0.0'
-    if Gem::Version.new(Vagrant::VERSION) < Gem::Version.new(wantedversion)
-        raise "Your Vagrant software is too old (#{Vagrant::VERSION}) - Please update it to at least #{wantedversion}!"
+  # Every Vagrant development environment requires a box. You can search for
+  # boxes at https://vagrantcloud.com/search.
+  # config.vm.box = "ubuntu/focal64"
+  # config.vm.box = "Ubuntu-20.04.3"
+  config.vm.box = "bento/ubuntu-20.04"
+
+  if Vagrant::Util::Platform.windows? then
+    # Plugins check
+    unless Vagrant.has_plugin?("virtualbox_WSL2")
+      raise 'virtualbox_WSL2 is not installed! "vagrant plugin install virtualbox_WSL2" is needed to be ran first!'
     end
-
-    # Plugins confirmation
     unless Vagrant.has_plugin?("vagrant-hosts")
-        puts "vagrant-hosts plugin is missing!\nWill install it now."
-        system('vagrant plugin install vagrant-hosts')
+      raise 'vagrant-hosts is not installed! "vagrant plugin install vagrant-hosts" is needed to be ran first!'
     end
-
     unless Vagrant.has_plugin?("vagrant-vbguest")
-        puts "vagrant-vbguest plugin is missing!\nWill install it now."
-        system('vagrant plugin install vagrant-vbguest')
+      raise 'vagrant-vbguest is not installed! "vagrant plugin install vagrant-vbguest" is needed to be ran first!'
     end
+  end
+  # Disable automatic box update checking. If you disable this, then
+  # boxes will only be checked for updates when the user runs
+  # `vagrant box outdated`. This is not recommended.
+  # config.vm.box_check_update = false
 
-    config.vm.provision :hosts do |provisioner|
-        provisioner.add_host '192.168.70.8', [
-            'node1.local'
-        ]
-        provisioner.add_host '192.168.70.9', [
-            'node2.local'
-        ]
-    end
+  # Create a forwarded port mapping which allows access to a specific port
+  # within the machine from a port on the host machine. In the example below,
+  # accessing "localhost:8080" will access port 80 on the guest machine.
+  # NOTE: This will enable public access to the opened port
+  # config.vm.network "forwarded_port", guest: 80, host: 8080
 
-    config.vm.define "Node1" do |node1|
-        node1.vbguest.auto_update = false
-        node1.vm.box = "ubuntu/bionic64"
-        node1.vm.hostname = "node1.local"
-        node1.vm.network :public_network
-        node1.vm.network :private_network, ip: "192.168.70.8", :adapter => 2
-        # node1.vm.network :forwarded_port, guest: 4149, host: 4149, id: "Kubelet-Containers metrics", auto_correct: true
-        # node1.vm.network :forwarded_port, guest: 6443, host: 6443, id: "Kube-API Server", auto_correct: true
-        # node1.vm.network :forwarded_port, guest: 10250, host: 10250, id: "Kubelet - API", auto_correct: true
-        # node1.vm.network :forwarded_port, guest: 10255, host: 10255, id: "Kubelet - Nodes state", auto_correct: true
-        # node1.vm.network :forwarded_port, guest: 10256, host: 10256, id: "Kube-proxy", auto_correct: true
-        # node1.vm.network :forwarded_port, guest: 9099, host: 9099, id: "Calico-Canal", auto_correct: true
-        # for p in 30000..32767 do
-        #     node1.vm.network :forwarded_port, guest: p, host: p, id: "#{p}_port", auto_correct: true
-        # end
-        node1.vm.provider "virtualbox" do |node1ADV|
-            node1ADV.customize ["modifyvm", :id, "--cpus", "2"]
-            node1ADV.customize ["modifyvm", :id, "--memory",5120]
-            node1ADV.customize ["guestproperty", "set", :id, "/VirtualBox/GuestAdd/VBoxService/--timesync-set-threshold", 10000]
-        end
-        node1.vm.provision :shell, :inline => "sudo /vagrant/Scripts/K8s/node1.sh", run: "always"
-    end
+  # Create a forwarded port mapping which allows access to a specific port
+  # within the machine from a port on the host machine and only allow access
+  # via 127.0.0.1 to disable public access
+  # config.vm.network "forwarded_port", guest: 80, host: 8080, host_ip: "127.0.0.1"
 
-    config.vm.define "Node2" do |node2|
-        node2.vbguest.auto_update = false
-        node2.vm.box = "ubuntu/bionic64"
-        node2.vm.hostname = "node2.local"
-        node2.vm.network :public_network
-        node2.vm.network :private_network, ip: "192.168.70.9", :adapter => 2
-        # node2.vm.network :forwarded_port, guest: 4149, host: 44149, id: "Kubelet-Containers metrics", auto_correct: true
-        # node2.vm.network :forwarded_port, guest: 6443, host: 46443, id: "Kube-API Server", auto_correct: true
-        # node2.vm.network :forwarded_port, guest: 10250, host: 40250, id: "Kubelet - API", auto_correct: true
-        # node2.vm.network :forwarded_port, guest: 10255, host: 40255, id: "Kubelet - Nodes state", auto_correct: true
-        # node2.vm.network :forwarded_port, guest: 10256, host: 40256, id: "Kube-proxy", auto_correct: true
-        # node2.vm.network :forwarded_port, guest: 9099, host: 49099, id: "Calico-Canal", auto_correct: true
-        # for p in 0..2767 do
-        #     guest_port=30000+p
-        #     host_port=50000+p
-        #     node2.vm.network :forwarded_port, guest: guest_port, host: host_port, id: "#{host_port}_port", auto_correct: true
-        # end
-        node2.vm.provider "virtualbox" do |node2ADV|
-            node2ADV.customize ["modifyvm", :id, "--cpus", "2"]
-            node2ADV.customize ["modifyvm", :id, "--memory", 5120]
-            node2ADV.customize ["guestproperty", "set", :id, "/VirtualBox/GuestAdd/VBoxService/--timesync-set-threshold", 10000]
-        end
-        node2.vm.provision :shell, :inline => "sudo /vagrant/Scripts/K8s/node2.sh", run: "always"
+  # Create a private network, which allows host-only access to the machine
+  # using a specific IP.
+  # config.vm.network "private_network", ip: "192.168.33.10"
+
+  # Create a public network, which generally matched to bridged network.
+  # Bridged networks make the machine appear as another physical device on
+  # your network.
+  # config.vm.network "public_network"
+
+  # Share an additional folder to the guest VM. The first argument is
+  # the path on the host to the actual folder. The second argument is
+  # the path on the guest to mount the folder. And the optional third
+  # argument is a set of non-required options.
+  # config.vm.synced_folder "../data", "/vagrant_data"
+
+  # Provider-specific configuration so you can fine-tune various
+  # backing providers for Vagrant. These expose provider-specific options.
+  # Example for VirtualBox:
+  #
+  config.vm.provider "virtualbox" do |vb|
+    # UI
+    vb.gui = false
+
+    # VM virtual-hardware spec
+    vb.customize [ "modifyvm", :id, "--uartmode1", "disconnected" ]
+    vb.customize  ["guestproperty", "set", :id, "/VirtualBox/GuestAdd/VBoxService/--timesync-set-threshold", 10000]
+  end
+
+  config.vm.provision :hosts do |provisioner|
+    provisioner.add_host '10.10.10.101', [
+        'node1.tests.net'
+    ]
+    provisioner.add_host '10.10.10.102', [
+        'node2.tests.net'
+    ]
+  end
+  
+  # Enable provisioning with a shell script. Additional provisioners such as
+  # Ansible, Chef, Docker, Puppet and Salt are also available. Please see the
+  # documentation for more information about their specific syntax and use.
+  # config.vm.provision "shell", inline: <<-SHELL
+  #   apt-get update
+  #   apt-get install -y apache2
+  # SHELL
+  config.vm.define 'node1' do |node1|
+    node1.vm.provider "virtualbox" do |node1ADV|
+      node1ADV.customize ["modifyvm", :id, "--cpus", "4"]
+      node1ADV.customize ["modifyvm", :id, "--memory", 4096]
     end
+    node1.vm.network 'private_network', ip: '10.10.10.101'
+    node1.vm.hostname = 'node1.tests.net'
+    node1.vm.provision :shell, path: 'node1.sh'
+  end
+  
+  config.vm.define 'node2' do |node2|
+    node2.vm.provider "virtualbox" do |node2ADV|
+      node2ADV.customize ["modifyvm", :id, "--cpus", "4"]
+      node2ADV.customize ["modifyvm", :id, "--memory", 4096]
+    end    
+    node2.vm.network 'private_network', ip: '10.10.10.102'
+    node2.vm.hostname = 'node2.tests.net'
+    node2.vm.provision :shell, path: 'node2.sh'
+  end
+
+  # config.vm.define 'testbox' do |testbox|
+  #   testbox.vm.box = "generic/alpine38"
+  #   testbox.vm.provider "virtualbox" do |testbox2ADV|
+  #     testbox2ADV.customize ["modifyvm", :id, "--cpus", "2"]
+  #     testbox2ADV.customize ["modifyvm", :id, "--memory", 2048]
+  #   end
+  # end
 end
