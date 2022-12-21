@@ -1,2 +1,7 @@
 .vagrant
-ubuntu-bionic-18.04-cloudimg-console.log
+authorized_keys
+k8s_cluster_token.sh
+kubectl_config
+Downloads
+Tools
+Yamls
