@@ -50,6 +50,7 @@ Vagrant.configure("2") do |config|
   config.vm.define 'master' do |node|
     node.vm.hostname = 'master.tests.net'
     node.vm.network "private_network", ip: "192.168.57.110"
+    node.vm.network "forwarded_port", guest: 6443, host: 6443, protocol: "tcp"
     node.vm.provision :shell, path: './provision_scripts/master.sh'
   end
   
@@ -57,6 +58,10 @@ Vagrant.configure("2") do |config|
     config.vm.define "node#{i}" do |node|
       node.vm.hostname = "node#{i}.tests.net"
       node.vm.network "private_network", ip: "192.168.57.1#{i}"
+      for port in 30200..30219 do
+        host_port = "#{port - 20000 + i * 1000}"
+        node.vm.network "forwarded_port", guest: "#{port}", host: "#{host_port}", protocol: "tcp"
+      end
       node.vm.provision :shell, path: './provision_scripts/worker_node.sh'
     end
   end
