@@ -62,6 +62,10 @@ Vagrant.configure("2") do |config|
         host_port = "#{port - 20000 + i * 1000}"
         node.vm.network "forwarded_port", guest: "#{port}", host: "#{host_port}", protocol: "tcp"
       end
+      for port in 30900..30903 do
+        host_port = "#{port - 20000 + i * 1000}"
+        node.vm.network "forwarded_port", guest: "#{port}", host: "#{host_port}", protocol: "tcp"
+      end
       node.vm.provision :shell, path: './provision_scripts/worker_node.sh'
     end
   end
