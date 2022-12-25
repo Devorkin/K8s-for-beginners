@@ -1,7 +1,11 @@
+.terraform.lock.hcl
 .vagrant
-authorized_keys
-k8s_cluster_token.sh
-kubectl_config
 Downloads
 Tools
 Yamls
+authorized_keys
+k8s_cluster_token.sh
+kubectl_config
+terraform.tfstate
+terraform.tfstate.backup
+terraform-provider-*
