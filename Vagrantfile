@@ -4,6 +4,8 @@
 Vagrant.configure("2") do |config|
 
   # Variables
+  allow_additional_disk = false
+  additional_disk_size = 30 * 1024
   NUM_OF_MACHINES = 4
   
   # Plugins check
@@ -12,12 +14,6 @@ Vagrant.configure("2") do |config|
   end
   unless Vagrant.has_plugin?("vagrant-vbguest")
     raise 'vagrant-vbguest is not installed! "vagrant plugin install vagrant-vbguest" is needed to be ran first!'
-  end
-
-  if Vagrant::Util::Platform.windows? then
-    unless Vagrant.has_plugin?("virtualbox_WSL2")
-      raise 'virtualbox_WSL2 is not installed! "vagrant plugin install virtualbox_WSL2" is needed to be ran first!'
-    end
   end
 
   # Default VM configuration
@@ -56,6 +52,7 @@ Vagrant.configure("2") do |config|
   
   (1..NUM_OF_MACHINES).each do |i|
     config.vm.define "node#{i}" do |node|
+      # Network configuration
       node.vm.hostname = "node#{i}.tests.net"
       node.vm.network "private_network", ip: "192.168.57.1#{i}"
       for port in 30200..30219 do
@@ -66,6 +63,20 @@ Vagrant.configure("2") do |config|
         host_port = "#{port - 20000 + i * 1000}"
         node.vm.network "forwarded_port", guest: "#{port}", host: "#{host_port}", protocol: "tcp"
       end
+
+      # Attach additional disk device
+      if allow_additional_disk == true
+        node.vm.provider "virtualbox" do |vb|
+          osd_disk = "./osd_disk_#{i}.vdi"
+          unless File.exist?(osd_disk)
+            vb.customize ['createhd', '--filename', osd_disk, '--size', additional_disk_size]
+          end
+          vb.customize ['storageattach', :id, '--storagectl', 'SCSI', '--port', 2, '--device', 0, '--type', 'hdd', '--medium', osd_disk]
+        end
+      end
+
+
+      # Provisioner
       node.vm.provision :shell, path: './provision_scripts/worker_node.sh'
     end
   end
