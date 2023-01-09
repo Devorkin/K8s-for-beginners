@@ -177,6 +177,11 @@ kubectl wait \
 kubectl apply -f manifests/
 ###
 
+# Default Playground configurations:
+kubectl create -f /vagrant/Playground/Yamls/Default/PriorityClasses/default.yaml
+kubectl create -f /vagrant/Playground/Yamls/Default/NameSpaces/default.yaml
+
+
 kubeadm token create --print-join-command | sed "s/${IP_ADDR}/$(hostname)/" > $shared_path/k8s_cluster_token.sh
 if [[ ! `grep $(hostname -f) $shared_path/k8s_cluster_token.sh 2> /dev/null` ]]; then
   echo -e "[ERR]\tError has occured and K8s cluster token was not created well, please fix it"
