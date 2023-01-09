@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: local-envs
+  namespace: playground
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      type: greeting
+  template:
+    metadata:
+      labels:
+        type: greeting
+    spec:
+      containers:
+      - name: print-envs
+        image: bash
+        env:
+        - name: GREETING
+          value: "Hello!"
+        - name: GIVEN_STRING
+          value: "it is nice e-meeting you"
+        - name: NAME
+          value: "Kubernetes"
+        command: ["bash"]
+        args:
+        - -c
+        - >-
+            echo "$(GREETING) $(GIVEN_STRING), $(NAME)" &&
+            sleep infinity
