@@ -4,10 +4,18 @@
 Vagrant.configure("2") do |config|
 
   # Variables
-  allow_additional_disk = false
+  allow_additional_disk = true
   additional_disk_size = 30 * 1024
+  vm_ram_capacity = 4096
+
+  provision_with_ceph = false
+    if provision_with_ceph == true
+      allow_additional_disk = true
+      vm_ram_capacity = 6144
+    end
+
   NUM_OF_MACHINES = 4
-  
+
   # Plugins check
   unless Vagrant.has_plugin?("vagrant-hosts")
     raise 'vagrant-hosts is not installed! "vagrant plugin install vagrant-hosts" is needed to be ran first!'
@@ -26,7 +34,7 @@ Vagrant.configure("2") do |config|
 
     # VM virtual-hardware spec
     vb.customize ["modifyvm", :id, "--cpus", "4"]
-    vb.customize ["modifyvm", :id, "--memory", 4096]
+    vb.customize ["modifyvm", :id, "--memory", vm_ram_capacity]
     vb.customize ["modifyvm", :id, "--uartmode1", "disconnected" ]
     vb.customize ["guestproperty", "set", :id, "/VirtualBox/GuestAdd/VBoxService/--timesync-set-threshold", 10000]
   end
