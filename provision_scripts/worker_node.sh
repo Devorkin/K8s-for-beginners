@@ -39,8 +39,8 @@ echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/helm.
 
 ## Install packages
 apt update; apt install -y apt-transport-https ca-certificates curl git gnupg2 jq software-properties-common vim wget
-apt install -y containerd kubeadm=1.24.7-00 kubectl=1.24.7-00 kubelet=1.24.7-00
-apt-mark hold containerd helm kubeadm kubectl kubelet
+apt install -y containerd=1.5.9* cri-tools=1.25.0-00 kubeadm=1.24.7-00 kubectl=1.24.7-00 kubelet=1.24.7-00
+apt-mark hold containerd cri-tools kubeadm kubectl kubelet
 
 # Enable kernel modules
 modprobe overlay

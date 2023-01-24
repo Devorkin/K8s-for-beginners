@@ -46,8 +46,8 @@ echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/helm.
 
 ## Install packages
 apt update; apt install -y apt-transport-https ca-certificates curl git golang gnupg2 helm jq software-properties-common vim wget
-apt install -y containerd kubeadm=1.24.7-00 kubectl=1.24.7-00 kubelet=1.24.7-00
-apt-mark hold containerd helm kubeadm kubectl kubelet
+apt install -y containerd=1.5.9* cri-tools=1.25.0-00 kubeadm=1.24.7-00 kubectl=1.24.7-00 kubelet=1.24.7-00
+apt-mark hold containerd cri-tools kubeadm kubectl kubelet
 
 # Enable kernel modules
 modprobe overlay
@@ -148,6 +148,10 @@ kubectl apply -f /opt/k8s/custom_resources/calico/custom-resources.yaml
 # kubectl -n kube-system describe secret $(kubectl -n kube-system get secret | grep ${k8s_admin_permission_token} | awk '{print $1}') | grep '^token:' | tr -s ' ' | cut -d ' ' -f2 > $shared_path/k8s_dashboard_token-$(date +"%d-%m-%y--%H-%M")
 
 # Kube-Prometheus
+## ToDos:
+### Install via Helm
+### Install & play with Grafana Loki
+
 ## Custromized Prometheus stack setup ###
 # Install some Go packages
 for PACKAGE in "github.com/brancz/gojsontoyaml" "github.com/google/go-jsonnet/cmd/jsonnet" "github.com/jsonnet-bundler/jsonnet-bundler/cmd/jb"; do
