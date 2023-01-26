@@ -36,7 +36,7 @@ else
 fi
 
 # Protect the script from re-run
-if [ ! -f /var/run/rook-ceph.pid]; then
+if [ ! -f /var/run/rook-ceph.pid ]; then
   echo $$ > /var/run/rook-ceph.pid
 else
   echo -e "`date +"%d-%m-%y %H:%M:%S"`\tRook-Ceph is setup is already running in the background..." | tee -a /var/log/k8s-rook-ceph.log
@@ -63,7 +63,6 @@ while ! kubectl wait pod -n rook-ceph -l mon=c --for condition=Ready --timeout=6
 while ! kubectl wait pod -n rook-ceph -l app=csi-rbdplugin --for condition=Ready --timeout=600s; do sleep 10; done
 while ! kubectl wait pod -n rook-ceph -l app=csi-cephfsplugin --for condition=Ready --timeout=600s; do sleep 10; done
 while ! kubectl wait -n rook-ceph pod -l osd=2 --for condition=Ready --timeout=600s; do sleep 10; done
-kubectl patch -n rook-ceph configmap rook-config-override -p '{"data": {"config":"[global]\nmon clock drift allowed = 5"}}'
 
 kubectl create -f $playground_dir/Yamls/Rook-Ceph/toolbox.yaml
 kubectl wait -n rook-ceph pod -l app=rook-ceph-tools --for condition=Ready --timeout=120s
