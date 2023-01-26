@@ -34,8 +34,16 @@ else
     fi
   fi
 fi
-echo "All goes well" | tee -a /var/log/k8s-rook-ceph.log
-exit 99
+
+# Protect the script from re-run
+if [ ! -f /var/run/rook-ceph.pid]; then
+  echo $$ > /var/run/rook-ceph.pid
+else
+  echo -e "`date +"%d-%m-%y %H:%M:%S"`\tRook-Ceph is setup is already running in the background..." | tee -a /var/log/k8s-rook-ceph.log
+  echo -e "`date +"%d-%m-%y %H:%M:%S"`\tUse \`kubectl get events -n rook-ceph -w\` to check the setup progress..." | tee -a /var/log/k8s-rook-ceph.log
+  exit 4
+fi
+
 ### TODO
 # Confirm that the cluster has more than 3 serving nodes
 # Confirm that these nodes has atleast 1 additional disk device - which is not in use and there's no filesystem on it
@@ -79,3 +87,4 @@ kubectl create -f $playground_dir/Yamls/Rook-Ceph/object-bucket-storageclass.yam
 while ! kubectl get storageclass -n rook-ceph rook-ceph-bucket &> /dev/null; do sleep 10; done
 
 if [ -f /etc/cron.d/rook-ceph-setup ]; then rm -f /etc/cron.d/rook-ceph-setup; fi
+if [ -f /var/run/rook-ceph.pid ]; then rm -f /var/run/rook-ceph.pid; fi
