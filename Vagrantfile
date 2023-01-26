@@ -4,14 +4,14 @@
 Vagrant.configure("2") do |config|
 
   # Variables
-  allow_additional_disk = true
-  additional_disk_size = 30 * 1024
+  allow_additional_disk = false
   vm_ram_capacity = 4096
 
-  provision_with_ceph = false
-    if provision_with_ceph == true
+  PROVISION_WITH_CEPH = false
+    if PROVISION_WITH_CEPH == true
+      additional_disk_size = 30 * 1024    # 30GB by default
       allow_additional_disk = true
-      vm_ram_capacity = 6144
+      # vm_ram_capacity = 10240
     end
 
   NUM_OF_MACHINES = 4
@@ -52,10 +52,13 @@ Vagrant.configure("2") do |config|
   end
 
   config.vm.define 'master' do |node|
+    node.vm.provider "virtualbox" do |vb|
+      vb.customize ["modifyvm", :id, "--memory", 3072]
+    end
     node.vm.hostname = 'master.tests.net'
     node.vm.network "private_network", ip: "192.168.57.110"
     node.vm.network "forwarded_port", guest: 6443, host: 6443, protocol: "tcp"
-    node.vm.provision :shell, path: './provision_scripts/master.sh'
+    node.vm.provision :shell, path: './provision_scripts/master.sh', args: PROVISION_WITH_CEPH
   end
   
   (1..NUM_OF_MACHINES).each do |i|
