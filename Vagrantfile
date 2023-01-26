@@ -8,7 +8,7 @@ Vagrant.configure("2") do |config|
   vm_ram_capacity = 4096
 
   PROVISION_WITH_CEPH = "false"
-    if PROVISION_WITH_CEPH == true
+    if PROVISION_WITH_CEPH == "true"
       additional_disk_size = 30 * 1024    # 30GB by default
       allow_additional_disk = true
       # vm_ram_capacity = 10240
