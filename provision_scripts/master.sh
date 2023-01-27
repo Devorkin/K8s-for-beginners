@@ -83,6 +83,8 @@ chown -v $(id -u):$(id -g) $HOME/.kube/config; chown -R vagrant:vagrant /home/va
 # kubectl taint nodes --all node-role.kubernetes.io/master-
 # kubectl taint nodes --all node-role.kubernetes.io/control-plane-
 
+
+
 # Install K8s Network plugin - Calico
 kubectl create -f https://projectcalico.docs.tigera.io/manifests/tigera-operator.yaml
 wget https://projectcalico.docs.tigera.io/manifests/custom-resources.yaml -O /opt/k8s/custom_resources/calico/custom-resources.yaml
@@ -99,6 +101,8 @@ kubectl apply -f /opt/k8s/custom_resources/calico/custom-resources.yaml
 #   --for=condition=ready pod \
 #   --selector=app.kubernetes.io/component=controller \
 #   --timeout=120s
+
+
 
 # Set up K8s dashboard, COMMENTED OUT DUE TO -> being unable to get K8s dashboard token
 # helm repo add kubernetes-dashboard https://kubernetes.github.io/dashboard/
@@ -147,6 +151,17 @@ kubectl apply -f /opt/k8s/custom_resources/calico/custom-resources.yaml
 ## Check for the generated token
 # kubectl -n kube-system describe secret $(kubectl -n kube-system get secret | grep ${k8s_admin_permission_token} | awk '{print $1}') | grep '^token:' | tr -s ' ' | cut -d ' ' -f2 > $shared_path/k8s_dashboard_token-$(date +"%d-%m-%y--%H-%M")
 
+
+
+# Rook-Ceph Storage-Forest
+if [ ! -z $1 ]; then
+  if [[ $1 == "true" ]]; then
+    cp /vagrant/Playground/Helm/Rook-Ceph/cronjob /etc/cron.d/rook-ceph-setup
+  fi
+fi
+
+
+
 # Kube-Prometheus
 ## ToDos:
 ### Install via Helm
@@ -181,9 +196,12 @@ kubectl wait \
 kubectl apply -f manifests/
 ###
 
+
+
 # Default Playground configurations:
 kubectl create -f /vagrant/Playground/Yamls/Default/PriorityClasses/default.yaml
 kubectl create -f /vagrant/Playground/Yamls/Default/NameSpaces/default.yaml
+
 
 
 kubeadm token create --print-join-command | sed "s/${IP_ADDR}/$(hostname)/" > $shared_path/k8s_cluster_token.sh

@@ -1,0 +1,1 @@
+*/5 * * * *   root  bash /vagrant/Playground/Helm/Rook-Ceph/rook-ceph.sh /vagrant/Playground
