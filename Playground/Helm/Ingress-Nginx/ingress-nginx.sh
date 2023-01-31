@@ -7,7 +7,7 @@ CPWD=$(basename $(pwd))
 if [ -f values.yaml ]; then
   playground_dir="."
 elif [[ $CPWD == "K8s-for-begginers" ]]; then
-  playground_dir="./Playground"
+  playground_dir="./Playground/Helm/Ingress-Nginx"
 else
   read -p 'Enter the path to the Playground directory: ' playground_dir
   if [ ! -d $playground_dir ]; then
