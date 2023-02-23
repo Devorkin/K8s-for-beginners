@@ -1,0 +1,123 @@
+---
+## Usage
+# If used on a baremetal node
+# Create a DNS record to point demo.tests.net to the node running the NGINX-Ingress controller
+# `kubectl get -n ingress-nginx pods -l app.kubernetes.io/name=ingress-nginx -o jsonpath="{['.status']['hostIP']}"`
+#
+# If used via Vagrant
+# Create a /etc/hosts record in the Host OS or another remote machine to point demo.tests.net to the Host running Vagrant
+#
+# Run the command `curl -s "http://demo.tests.net:12208?[1-999999]" > /dev/null` multiple times in parallel to stress the service,
+# and make K8s to schedule more\less replicas automatically
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-homepage
+  namespace: playground
+data:
+  index.html: |
+    <HTML>
+    <HEAD>
+    <TITLE>Hello user!</TITLE>
+    </HEAD>
+    <BODY BGCOLOR="#000000" TEXT="#ffffff">
+    <P>Welcome to my playground!</P>
+    </BODY>
+    </HTML>
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-horizontal-scale
+  namespace: playground
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      type: horizontalScale
+  template:
+    metadata:
+      labels:
+        type: horizontalScale
+    spec:
+      containers:
+      - name: nginx
+        image: nginx
+        imagePullPolicy: IfNotPresent
+        ports:
+          - containerPort: 80
+        resources:
+          requests:
+            cpu: "50m"
+            memory: "4Mi"
+          limits:
+            cpu: "100m"
+            memory: "32Mi"
+        volumeMounts:
+        - name: nginx-homepage
+          mountPath: /usr/share/nginx/html/index.html
+          subPath: index.html
+          readOnly: true
+      volumes:
+      - name: nginx-homepage
+        configMap:
+          name: nginx-homepage
+          items:
+          - key: index.html
+            path: index.html
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-horizontal-scale
+  namespace: playground
+spec:
+  spec:
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: 80
+  selector:
+    type: horizontalScale
+  type: ClusterIP
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: nginx-horizontal-scale
+  namespace: playground
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: demo.tests.net
+    http:
+      paths:
+      - backend:
+          service:
+            name: nginx-horizontal-scale
+            port:
+              number: 80
+        path: /
+        pathType: Prefix
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: nginx-horizontal-scale
+  namespace: playground
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: nginx-horizontal-scale
+  minReplicas: 1
+  maxReplicas: 100
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 50

@@ -1,0 +1,131 @@
+---
+## Usage
+# docker tag ${image}:[$tag] ${docker-registry-url}[:$port]/${image}:[$tag]
+# docker pull ${docker-registry-url}[:$port]/${image}:[$tag]
+# docker push ${docker-registry-url}[:$port]/${image}:[$tag]
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: docker-registry
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: docker-registry-local-pv
+spec:
+  capacity:
+    storage: 5Gi
+  accessModes:
+  - ReadWriteOnce
+  hostPath:
+    path: /tmp/docker-registry-repository
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: kubernetes.io/hostname
+          operator: In
+          values:
+          - node1
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: docker-registry-local-pvc
+  namespace: docker-registry
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: docker-registry
+  namespace: docker-registry
+spec:
+  ports:
+  - name: http
+    nodePort: 30217
+    port: 5000
+    protocol: TCP
+    targetPort: 5000
+  selector:
+    app: docker-registry
+  type: NodePort
+---
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: docker-registry
+  namespace: docker-registry
+spec:
+  selfSigned: {}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: docker-registry.crt
+  namespace: docker-registry
+spec:
+  secretName: docker-registry.crt
+  dnsNames:
+  - "*.docker-registry.server3.devorkin.net"
+  - "*.docker-registry.svc.cluster.local"
+  - "*.docker-registry"
+  issuerRef:
+    name: docker-registry
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: docker-registry
+  namespace: docker-registry
+  labels:
+    app: docker-registry
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: docker-registry
+  template:
+    metadata:
+      labels:
+        app: docker-registry
+    spec:
+      containers:
+        - name: docker-registry
+          env:
+          - name: REGISTRY_HTTP_TLS_CERTIFICATE
+            value: "/certs/tls.crt"
+          - name: REGISTRY_HTTP_TLS_KEY
+            value: "/certs/tls.key"
+          image: registry:2
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 5000
+          volumeMounts:
+          - name: repository-volume
+            mountPath: /var/lib/registry
+            readOnly: false
+          - name: ssl-secret
+            mountPath: /certs
+            readOnly: true
+      volumes:
+      - name: repository-volume
+        persistentVolumeClaim:
+          claimName: docker-registry-local-pvc
+      - name: ssl-secret
+        secret:
+          secretName: docker-registry.crt
+          items:
+          - key: ca.crt
+            path: ca.crt
+          - key: tls.crt
+            path: tls.crt
+          - key: tls.key
+            path: tls.key
+          optional: false
