@@ -11,7 +11,6 @@ if [ -d /vagrant ]; then
   shared_path=/vagrant
 
   # SSHD configuration
-  cat /vagrant/authorized_keys >> ~/.ssh/authorized_keys
   sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
   systemctl restart sshd
 
@@ -64,7 +63,7 @@ sysctl --system 2> /dev/null
 
 # Create required directories
 mkdir -p /etc/containerd
-mkdir -vp /opt/k8s/custom_resources/{accounts,calico}
+mkdir -vp /opt/k8s/custom_resources/calico
 mkdir -vp $HOME/.kube; mkdir -p /home/vagrant/.kube
 
 # Configure Containerd
@@ -86,22 +85,10 @@ chown -v $(id -u):$(id -g) $HOME/.kube/config; chown -R vagrant:vagrant /home/va
 
 
 # Install K8s Network plugin - Calico
-kubectl create -f https://projectcalico.docs.tigera.io/manifests/tigera-operator.yaml
-wget https://projectcalico.docs.tigera.io/manifests/custom-resources.yaml -O /opt/k8s/custom_resources/calico/custom-resources.yaml
+kubectl create -f https://raw.githubusercontent.com/projectcalico/calico/v3.25.0/manifests/tigera-operator.yaml
+wget https://raw.githubusercontent.com/projectcalico/calico/v3.25.0/manifests/custom-resources.yaml -O /opt/k8s/custom_resources/calico/custom-resources.yaml
 sed -i "s|192.168.0.0/16|$k8s_pods_network_cidr|" /opt/k8s/custom_resources/calico/custom-resources.yaml
 kubectl apply -f /opt/k8s/custom_resources/calico/custom-resources.yaml
-
-# Install Ingress-NGINX
-# helm upgrade --install ingress-nginx ingress-nginx \
-#   --repo https://kubernetes.github.io/ingress-nginx \
-#   --namespace ingress-nginx --create-namespace
-
-# Wait for all needed Pods to be in a READY state
-# kubectl wait --namespace ingress-nginx \
-#   --for=condition=ready pod \
-#   --selector=app.kubernetes.io/component=controller \
-#   --timeout=120s
-
 
 
 # Set up K8s dashboard, COMMENTED OUT DUE TO -> being unable to get K8s dashboard token
@@ -152,14 +139,12 @@ kubectl apply -f /opt/k8s/custom_resources/calico/custom-resources.yaml
 # kubectl -n kube-system describe secret $(kubectl -n kube-system get secret | grep ${k8s_admin_permission_token} | awk '{print $1}') | grep '^token:' | tr -s ' ' | cut -d ' ' -f2 > $shared_path/k8s_dashboard_token-$(date +"%d-%m-%y--%H-%M")
 
 
-
 # Rook-Ceph Storage-Forest
 if [ ! -z $1 ]; then
   if [[ $1 == "true" ]]; then
     cp /vagrant/Playground/Helm/Rook-Ceph/cronjob /etc/cron.d/rook-ceph-setup
   fi
 fi
-
 
 
 # Kube-Prometheus
@@ -197,11 +182,9 @@ kubectl apply -f manifests/
 ###
 
 
-
 # Default Playground configurations:
 kubectl create -f /vagrant/Playground/Yamls/Default/PriorityClasses/default.yaml
 kubectl create -f /vagrant/Playground/Yamls/Default/NameSpaces/default.yaml
-
 
 
 kubeadm token create --print-join-command | sed "s/${IP_ADDR}/$(hostname)/" > $shared_path/k8s_cluster_token.sh
