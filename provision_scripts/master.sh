@@ -31,11 +31,21 @@ if [[ ! -d $shared_path ]]; then
 fi
 
 # Script declarations
+CA_LIFE_TIME='3650'
+CA_NAME='k8s-playground-ca'
 k8s_pods_network_cidr=10.100.100.0/24
 
 # Disable SWAP
 swapoff -a
 sed -i.bak "/swap/ s/^/#/" /etc/fstab
+
+# Generate a new CA Authority SSL certificate
+if [ ! -f /etc/pki/tls/keys/${CA_NAME}.key ]; then
+  openssl genrsa -out /etc/pki/tls/keys/${CA_NAME}.key 4096
+  openssl req -x509 -new -nodes -key /etc/pki/tls/keys/${CA_NAME}.key -days ${CA_LIFE_TIME} -sha256 -out /etc/pki/tls/certs/${CA_NAME}.crt -subj "/CN=${CA_NAME}"
+  cp /etc/pki/tls/certs/${CA_NAME}.crt {/usr/local/share/ca-certificates/, $shared_path/}
+  update-ca-certificates
+fi
 
 # Setting up repositories
 curl https://baltocdn.com/helm/signing.asc | gpg --dearmor | tee /usr/share/keyrings/helm.gpg > /dev/null
@@ -82,6 +92,20 @@ chown -v $(id -u):$(id -g) $HOME/.kube/config; chown -R vagrant:vagrant /home/va
 # kubectl taint nodes --all node-role.kubernetes.io/master-
 # kubectl taint nodes --all node-role.kubernetes.io/control-plane-
 
+
+# Define a CA Authority Secret
+kubectl create namespace ssl-ready
+cat <<EOF | kubectl apply -f -
+apiVersion: v1
+kind: Secret
+metadata:
+  name: ${CA_NAME}-secret
+  namespace: ssl-ready
+type: Opaque
+data:
+  tls.crt: $(cat /etc/pki/tls/certs/${CA_NAME}.crt | base64 -w 0)
+  tls.key: $(cat /etc/pki/tls/keys/${CA_NAME}.key | base64 -w 0)
+EOF
 
 
 # Install K8s Network plugin - Calico

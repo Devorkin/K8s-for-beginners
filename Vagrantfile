@@ -86,7 +86,6 @@ Vagrant.configure("2") do |config|
         end
       end
 
-
       # Provisioner
       node.vm.provision :shell, path: './provision_scripts/worker_node.sh'
     end

@@ -25,11 +25,18 @@ if [[ ! -d $shared_path ]]; then
 fi
 
 # Script declarations
+CA_NAME='k8s-playground-ca'
 # k8s_node_max_pods=90
 
 # Disable SWAP
 swapoff -a
 sed -i.bak "/swap/ s/^/#/" /etc/fstab
+
+# Trust this K8s cluster CA Authority SSL certificate
+if [ -f $shared_path/${CA_NAME}.crt ]; then
+  cp $shared_path/${CA_NAME}.crt /usr/local/share/ca-certificates/
+  update-ca-certificates
+fi
 
 # Setting up repositories
 curl https://baltocdn.com/helm/signing.asc | gpg --dearmor | tee /usr/share/keyrings/helm.gpg > /dev/null
