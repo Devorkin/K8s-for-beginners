@@ -31,11 +31,24 @@ if [[ ! -d $shared_path ]]; then
 fi
 
 # Script declarations
+CA_LIFE_TIME='3650'
+CA_NAME='k8s-playground-ca'
 k8s_pods_network_cidr=10.100.100.0/24
 
 # Disable SWAP
 swapoff -a
 sed -i.bak "/swap/ s/^/#/" /etc/fstab
+
+# Generate a new CA Authority SSL certificate
+if [[ ${PROVISION_SELF_SIGNED_CA_CRT} == "true" ]]; then
+  if [ ! -f /etc/pki/tls/keys/${CA_NAME}.key ]; then
+    mkdir -p /etc/pki/tls/{certs,keys} &> /dev/null
+    openssl genrsa -out /etc/pki/tls/keys/${CA_NAME}.key 4096
+    openssl req -x509 -new -nodes -key /etc/pki/tls/keys/${CA_NAME}.key -days ${CA_LIFE_TIME} -sha256 -out /etc/pki/tls/certs/${CA_NAME}.crt -subj "/CN=${CA_NAME}"
+    cp /etc/pki/tls/certs/${CA_NAME}.crt /usr/local/share/ca-certificates/; cp /etc/pki/tls/certs/${CA_NAME}.crt $shared_path/
+    update-ca-certificates
+  fi
+fi
 
 # Setting up repositories
 curl https://baltocdn.com/helm/signing.asc | gpg --dearmor | tee /usr/share/keyrings/helm.gpg > /dev/null
@@ -82,6 +95,22 @@ chown -v $(id -u):$(id -g) $HOME/.kube/config; chown -R vagrant:vagrant /home/va
 # kubectl taint nodes --all node-role.kubernetes.io/master-
 # kubectl taint nodes --all node-role.kubernetes.io/control-plane-
 
+
+# Define a CA Authority Secret
+if [[ ${PROVISION_SELF_SIGNED_CA_CRT} == "true" ]]; then
+  kubectl create namespace ssl-ready
+cat <<EOF | kubectl apply -f -
+apiVersion: v1
+kind: Secret
+metadata:
+  name: ${CA_NAME}-secret
+  namespace: ssl-ready
+type: Opaque
+data:
+  tls.crt: $(cat /etc/pki/tls/certs/${CA_NAME}.crt | base64 -w 0)
+  tls.key: $(cat /etc/pki/tls/keys/${CA_NAME}.key | base64 -w 0)
+EOF
+fi
 
 
 # Install K8s Network plugin - Calico
@@ -140,10 +169,18 @@ kubectl apply -f /opt/k8s/custom_resources/calico/custom-resources.yaml
 
 
 # Rook-Ceph Storage-Forest
-if [ ! -z $1 ]; then
-  if [[ $1 == "true" ]]; then
-    cp /vagrant/Playground/Helm/Rook-Ceph/cronjob /etc/cron.d/rook-ceph-setup
-  fi
+if [[ ${PROVISION_CEPH} == "true" ]]; then
+  cp /vagrant/Playground/Helm/Rook-Ceph/cronjob /etc/cron.d/rook-ceph-setup
+  echo 'Rook provision will start in 5mis, via Cronjob...'
+  echo 'You can watch its provision log at: /var/log/k8s-rook-ceph.log'
+fi
+
+
+# Cert-Manager
+if [[ ${PROVISION_CERT_MANAGER} == "true" ]]; then
+  cp /vagrant/Playground/Helm/Cert-Manager/cronjob /etc/cron.d/cert-manager-setup
+  echo 'Cert-Manager provision will start in 5mis, via Cronjob...'
+  echo 'You can watch its provision log at: /var/log/cert-manager.log'
 fi
 
 

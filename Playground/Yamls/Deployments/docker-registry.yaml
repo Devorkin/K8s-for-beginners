@@ -49,7 +49,7 @@ metadata:
 spec:
   ports:
   - name: http
-    nodePort: 30217
+    nodePort: 30207
     port: 5000
     protocol: TCP
     targetPort: 5000
@@ -58,27 +58,49 @@ spec:
   type: NodePort
 ---
 apiVersion: cert-manager.io/v1
-kind: Issuer
-metadata:
-  name: docker-registry
-  namespace: docker-registry
-spec:
-  selfSigned: {}
----
-apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
-  name: docker-registry.crt
+  name: docker-registry-cert
   namespace: docker-registry
 spec:
-  secretName: docker-registry.crt
+  commonName: '*.tests.net'
+  secretName: tests-net-cert-secret
+  isCA: false
   dnsNames:
-  - "*.docker-registry.server3.devorkin.net"
-  - "*.docker-registry.svc.cluster.local"
-  - "*.docker-registry"
+    - docker-registry.tests.net
+    - "*.tests.net"
+    - '*.docker-registry'
+    - '*.docker-registry.svc.cluster.local'
+  privateKey:
+    algorithm: RSA
+    encoding: PKCS1
+    size: 2048
   issuerRef:
-    name: docker-registry
+    name: tests-ca-issuer
+    kind: ClusterIssuer
+  usages:
+    - server auth
+    - client auth
 ---
+# apiVersion: networking.k8s.io/v1
+# kind: Ingress
+# metadata:
+#   name: docker-registry
+#   namespace: docker-registry
+# spec:
+#   ingressClassName: nginx
+#   rules:
+#   - host: docker-registry.server3.devorkin.net
+#     http:
+#       paths:
+#       - backend:
+#           service:
+#             name: docker-registry
+#             port:
+#               number: 5000
+#         path: /
+#         pathType: Prefix
+# ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -96,6 +118,15 @@ spec:
       labels:
         app: docker-registry
     spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: kubernetes.io/hostname
+                operator: In
+                values:
+                - node1
       containers:
         - name: docker-registry
           env:
@@ -120,7 +151,7 @@ spec:
           claimName: docker-registry-local-pvc
       - name: ssl-secret
         secret:
-          secretName: docker-registry.crt
+          secretName: tests-net-cert-secret
           items:
           - key: ca.crt
             path: ca.crt

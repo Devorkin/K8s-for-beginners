@@ -1,0 +1,1 @@
+*/5 * * * *   root bash /vagrant/Playground/Helm/Cert-Manager/cert-manager.sh install

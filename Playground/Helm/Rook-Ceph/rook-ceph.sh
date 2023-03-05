@@ -1,15 +1,11 @@
 #! /bin/bash
 
 # Dependecy checks and variables declaration
-which helm &>/dev/null
-if [[ $? != 0 ]]; then
-  echo -e "`date +"%d-%m-%y %H:%M:%S"`\tHelm is missing!" | tee -a /var/log/k8s-rook-ceph.log
-  exit 1
-fi
+if ! which helm &>/dev/null; then echo -e "`date +"%d-%m-%y %H:%M:%S"`\tHelm is missing!" | tee -a /var/log/k8s-rook-ceph.log; exit 1; fi
 
-NODES_COUNT=$(kubectl get nodes --no-headers=true | grep -v control-plane | wc -l)
-if [ ! $NODES_COUNT -gt 3 ]; then
-  echo -e "`date +"%d-%m-%y %H:%M:%S"`\tCeph setup requires at least 4 nodes, currently there are ${NODES_COUNT} registered, please enlarge your K8s cluster" | tee -a /var/log/k8s-rook-ceph.log
+NODES_COUNT=$(kubectl get nodes -o json | jq -r '.items[] | select(.spec.taints|not) | select(.status.conditions[].reason=="KubeletReady" and .status.conditions[].status=="True") | .metadata.name' | wc -l)
+if [ ! $NODES_COUNT -gt 2 ]; then
+  echo -e "`date +"%d-%m-%y %H:%M:%S"`\tCeph setup requires at least 3 nodes, currently there are ${NODES_COUNT} registered, please enlarge your K8s cluster" | tee -a /var/log/k8s-rook-ceph.log
   exit 2
 fi
 
@@ -39,7 +35,7 @@ fi
 if [ ! -f /var/run/rook-ceph.pid ]; then
   echo $$ > /var/run/rook-ceph.pid
 else
-  echo -e "`date +"%d-%m-%y %H:%M:%S"`\tRook-Ceph is setup is already running in the background..." | tee -a /var/log/k8s-rook-ceph.log
+  echo -e "`date +"%d-%m-%y %H:%M:%S"`\tRook-Ceph setup is already running in the background..." | tee -a /var/log/k8s-rook-ceph.log
   echo -e "`date +"%d-%m-%y %H:%M:%S"`\tUse \`kubectl get events -n rook-ceph -w\` to check the setup progress..." | tee -a /var/log/k8s-rook-ceph.log
   exit 4
 fi
