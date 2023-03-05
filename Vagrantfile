@@ -7,14 +7,26 @@ Vagrant.configure("2") do |config|
   allow_additional_disk = false
   vm_ram_capacity = 4096
 
-  PROVISION_WITH_CEPH = "false"
-    if PROVISION_WITH_CEPH == "true"
-      additional_disk_size = 30 * 1024    # 30GB by default
-      allow_additional_disk = true
-      # vm_ram_capacity = 10240
-    end
-
   NUM_OF_MACHINES = 4
+
+  PROVISION_CEPH = "false"
+  if PROVISION_CEPH == "true"
+    additional_disk_size = 30 * 1024    # 30GB by default
+    allow_additional_disk = true
+    # vm_ram_capacity = 10240
+  end
+  PROVISION_CERT_MANAGER = "true"
+  PROVISION_SELF_SIGNED_CA_CRT = "true"
+
+  # VM OS-environments setup
+  ARGS = [PROVISION_CEPH, PROVISION_SELF_SIGNED_CA_CRT, PROVISION_CERT_MANAGER]
+  $set_environment_variables = <<SCRIPT
+tee "/etc/profile.d/vagrant-setup.sh" > "/dev/null" <<EOF
+export PROVISION_CEPH="$1"
+export PROVISION_SELF_SIGNED_CA_CRT="$2"
+export PROVISION_CERT_MANAGER="$3"
+EOF
+SCRIPT
 
   # Plugins check
   unless Vagrant.has_plugin?("vagrant-hosts")
@@ -51,16 +63,17 @@ Vagrant.configure("2") do |config|
     }
   end
 
+  # VMs setups
   config.vm.define 'master' do |node|
     node.vm.provider "virtualbox" do |vb|
       vb.customize ["modifyvm", :id, "--memory", 3072]
     end
     node.vm.hostname = 'master.tests.net'
     node.vm.network "private_network", ip: "192.168.57.110"
-    node.vm.network "forwarded_port", guest: 6443, host: 6443, protocol: "tcp"
-    node.vm.provision :shell, path: './provision_scripts/master.sh', args: PROVISION_WITH_CEPH
+    node.vm.provision :shell, inline: $set_environment_variables, run: "always", args: ARGS
+    node.vm.provision :shell, path: './provision_scripts/master.sh'
   end
-  
+
   (1..NUM_OF_MACHINES).each do |i|
     config.vm.define "node#{i}" do |node|
       # Network configuration
