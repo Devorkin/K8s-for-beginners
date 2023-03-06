@@ -1,0 +1,1 @@
+*/5 * * * *   root bash /vagrant/Playground/Helm/Ingress-Nginx/ingress-nginx.sh install

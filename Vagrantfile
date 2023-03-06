@@ -11,20 +11,22 @@ Vagrant.configure("2") do |config|
 
   PROVISION_CEPH = "false"
   if PROVISION_CEPH == "true"
-    additional_disk_size = 30 * 1024    # 30GB by default
+    additional_disk_size = 30 * 1024          # 30GB by default
     allow_additional_disk = true
     # vm_ram_capacity = 10240
   end
   PROVISION_CERT_MANAGER = "true"
+  PROVISION_INGRESS_NGINX = "true"
   PROVISION_SELF_SIGNED_CA_CRT = "true"
 
   # VM OS-environments setup
-  ARGS = [PROVISION_CEPH, PROVISION_SELF_SIGNED_CA_CRT, PROVISION_CERT_MANAGER]
+  ARGS = [PROVISION_CEPH, PROVISION_SELF_SIGNED_CA_CRT, PROVISION_CERT_MANAGER, PROVISION_INGRESS_NGINX]
   $set_environment_variables = <<SCRIPT
 tee "/etc/profile.d/vagrant-setup.sh" > "/dev/null" <<EOF
 export PROVISION_CEPH="$1"
 export PROVISION_SELF_SIGNED_CA_CRT="$2"
 export PROVISION_CERT_MANAGER="$3"
+export PROVISION_INGRESS_NGINX="$4"
 EOF
 SCRIPT
 
