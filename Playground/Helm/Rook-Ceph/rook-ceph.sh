@@ -3,9 +3,9 @@
 # Dependecy checks and variables declaration
 if ! which helm &>/dev/null; then echo -e "`date +"%d-%m-%y %H:%M:%S"`\tHelm is missing!" | tee -a /var/log/k8s-rook-ceph.log; exit 1; fi
 
-NODES_COUNT=$(kubectl get nodes -o json | jq -r '.items[] | select(.spec.taints|not) | select(.status.conditions[].reason=="KubeletReady" and .status.conditions[].status=="True") | .metadata.name' | wc -l)
-if [ ! $NODES_COUNT -gt 2 ]; then
-  echo -e "`date +"%d-%m-%y %H:%M:%S"`\tCeph setup requires at least 3 nodes, currently there are ${NODES_COUNT} registered, please enlarge your K8s cluster" | tee -a /var/log/k8s-rook-ceph.log
+nodes_count=$(kubectl get nodes -o json | jq -r '.items[] | select(.spec.taints|not) | select(.status.conditions[].reason=="KubeletReady" and .status.conditions[].status=="True") | .metadata.name' | wc -l)
+if [ ! $nodes_count -gt 2 ]; then
+  echo -e "`date +"%d-%m-%y %H:%M:%S"`\tCeph setup requires at least 3 nodes, currently there are ${nodes_count} registered, please enlarge your K8s cluster" | tee -a /var/log/k8s-rook-ceph.log
   exit 2
 fi
 
