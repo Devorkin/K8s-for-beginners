@@ -44,7 +44,7 @@ install() {
   helm upgrade --install ingress-nginx ingress-nginx \
     --repo https://kubernetes.github.io/ingress-nginx \
     --namespace ${namespace} --create-namespace \
-    -f $playground_dir/values.yaml
+    -f $playground_dir/values.yaml 1> /dev/null
 
   kubectl wait --namespace ${namespace} \
     --for=condition=ready pod \
