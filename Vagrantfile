@@ -12,8 +12,16 @@ Vagrant.configure("2") do |config|
   PROVISION_CEPH = "false"
   if PROVISION_CEPH == "true"
     additional_disk_size = 30 * 1024          # 30GB by default
-    allow_additional_disk = true
-    # vm_ram_capacity = 10240
+
+    unless allow_additional_disk == true
+      raise 'Ceph setup requires additional disks to be Enabled.'
+    end
+    unless NUM_OF_MACHINES >= 3
+      raise 'Ceph setup requires atleast 3 nodes!'
+    end
+    unless vm_ram_capacity >= 4096
+      raise 'Ceph setup requires each Ceph node to have atleast 4GB of RAM!'
+    end
   end
   PROVISION_CERT_MANAGER = "true"
   PROVISION_INGRESS_NGINX = "true"
@@ -72,6 +80,8 @@ SCRIPT
     end
     node.vm.hostname = 'master.tests.net'
     node.vm.network "private_network", ip: "192.168.57.110"
+    node.vm.network "forwarded_port", guest: "30208", host: "30208", protocol: "tcp"
+    node.vm.network "forwarded_port", guest: "30209", host: "30209", protocol: "tcp"
     node.vm.provision :shell, inline: $set_environment_variables, run: "always", args: ARGS
     node.vm.provision :shell, path: './provision_scripts/master.sh'
   end
