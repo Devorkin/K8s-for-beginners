@@ -5,7 +5,7 @@ Vagrant.configure("2") do |config|
 
   # Variables
   allow_additional_disk = false
-  vm_ram_capacity = 4096
+  vm_ram_capacity = 6144
 
   NUM_OF_MACHINES = 4
 
@@ -23,18 +23,35 @@ Vagrant.configure("2") do |config|
       raise 'Ceph setup requires each Ceph node to have atleast 4GB of RAM!'
     end
   end
+
   PROVISION_CERT_MANAGER = "true"
+  PROVISION_GITLAB = "false"
+  if PROVISION_GITLAB == "true"
+    unless PROVISION_CEPH == "true"
+      raise 'The playground Gitlab environment is depend on Ceph storage solution - Block Filesystem, please enable it.'
+    end
+    if vm_ram_capacity < 6144
+      raise 'The playground Gitlab environment is confirmed to work with atleast 5 nodes, each with 6GB of RAM'
+    end
+    if vm_ram_capacity == 6144
+      unless NUM_OF_MACHINES >= 5
+        raise "The playground Gitlab environment is confirmed to work with atleast 5 nodes with 6GB of RAM, you are currently using #{NUM_OF_MACHINES} machines"
+      end
+    end
+  end
+
   PROVISION_INGRESS_NGINX = "true"
   PROVISION_SELF_SIGNED_CA_CRT = "true"
 
   # VM OS-environments setup
-  ARGS = [PROVISION_CEPH, PROVISION_SELF_SIGNED_CA_CRT, PROVISION_CERT_MANAGER, PROVISION_INGRESS_NGINX]
+  ARGS = [PROVISION_CEPH, PROVISION_SELF_SIGNED_CA_CRT, PROVISION_CERT_MANAGER, PROVISION_GITLAB, PROVISION_INGRESS_NGINX]
   $set_environment_variables = <<SCRIPT
 tee "/etc/profile.d/vagrant-setup.sh" > "/dev/null" <<EOF
 export PROVISION_CEPH="$1"
 export PROVISION_SELF_SIGNED_CA_CRT="$2"
 export PROVISION_CERT_MANAGER="$3"
-export PROVISION_INGRESS_NGINX="$4"
+export PROVISION_GITLAB="$4"
+export PROVISION_INGRESS_NGINX="$5"
 EOF
 SCRIPT
 

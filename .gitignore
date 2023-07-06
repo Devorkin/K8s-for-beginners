@@ -4,7 +4,12 @@ Downloads
 Tools
 authorized_keys
 k8s_cluster_token.sh
+k8s-playground-ca.crt
 kubectl_config
+osd_disk_?.vdi
 terraform.tfstate
 terraform.tfstate.backup
 terraform-provider-*
+Playground/DockerImages/
+Playground/Helm/Cert-Manager/root-ca
+Playground/Helm/ToDos

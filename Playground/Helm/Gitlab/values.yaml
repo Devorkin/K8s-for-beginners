@@ -1,0 +1,54 @@
+apiVersion: apps.gitlab.com/v1beta1
+kind: GitLab
+metadata:
+  name: gitlab
+  namespace: gitlab-system
+spec:
+  chart:
+    version: "6.7.8"
+    values:
+      certmanager:
+        install: false
+
+      gitlab:
+        gitaly:
+          persistence:
+            size: 50Gi
+            storageClass: rook-ceph-block
+
+      gitlab-runner:
+        install: false
+
+      global:
+        edition: ce
+        hosts:
+          domain: gitlab.tests.net
+          https: false
+        initialRootPassword:
+          secret: gitlab-initial-root-password
+        ingress:
+          configureCertmanager: false
+          tls:
+            enabled: false
+
+      minio:
+        persistence:
+          size: 10Gi
+          storageClass: rook-ceph-block
+
+      nginx-ingress:
+        enabled: false
+
+      postgresql:
+        persistence:
+          size: 8Gi
+          storageClass: rook-ceph-block
+
+      prometheus:
+        install: false
+
+      redis:
+        master:
+          persistence:
+            size: 5Gi
+            storageClass: rook-ceph-block

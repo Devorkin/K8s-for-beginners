@@ -1,0 +1,108 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: entrypoint
+  namespace: gitlab-system
+data:
+  01-databases.sql: |
+    CREATE DATABASE gitlab;
+  02-users.sql: |
+    CREATE USER gitlab WITH PASSWORD '+BP52QIxpT/flVCMpL3KXA==';
+  03-permissions.sql: |
+    GRANT ALL PRIVILEGES ON DATABASE gitlab TO gitlab;
+    GRANT ALL PRIVILEGES ON DATABASE gitlab TO postgres;
+
+    \connect gitlab
+
+    GRANT ALL ON ALL TABLES IN SCHEMA public TO gitlab;
+    GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO gitlab;
+
+    GRANT ALL ON ALL TABLES IN SCHEMA public TO postgres;
+    GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO postgres;
+  04-extensions.sql: |
+    \connect gitlab
+    CREATE EXTENSION pg_trgm;
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gitlab-postgresql
+  namespace: gitlab-system
+  labels:
+    name: gitlab-postgresql
+spec:
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: postgres
+      nodePort: 30216
+  selector:
+    name: gitlab-postgresql
+  type: NodePort
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gitlab-postgresql
+  namespace: gitlab-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: gitlab-postgresql
+  template:
+    metadata:
+      labels:
+        name: gitlab-postgresql
+    spec:
+      containers:
+      - name: postgresql
+        # image: sameersbn/postgresql:latest
+        image: postgres:15
+        imagePullPolicy: Always
+        env:
+        - name: POSTGRES_PASSWORD
+          value: =034563v$bdefg5rH3wt3Y5@
+        ports:
+        - name: postgres
+          containerPort: 5432
+        volumeMounts:
+        - name: data
+          mountPath: /var/lib/postgresql
+        - name: entrypoint
+          mountPath: /docker-entrypoint-initdb.d/
+        # livenessProbe:
+        #   exec:
+        #     command:
+        #     - pg_isready
+        #     - -h
+        #     - localhost
+        #     - -U
+        #     - postgres
+        #   initialDelaySeconds: 30
+        #   timeoutSeconds: 5
+        # readinessProbe:
+        #   exec:
+        #     command:
+        #     - pg_isready
+        #     - -h
+        #     - localhost
+        #     - -U
+        #     - postgres
+        #   initialDelaySeconds: 5
+        #   timeoutSeconds: 1
+      volumes:
+      - name: data
+        emptyDir: {}
+      - name: entrypoint
+        configMap:
+          name: entrypoint
+          items:
+          - key: 01-databases.sql
+            path: 01-databases.sql
+          - key: 02-users.sql
+            path: 02-users.sql
+          - key: 03-permissions.sql
+            path: 03-permissions.sql
+          - key: 04-extensions.sql
+            path: 04-extensions.sql

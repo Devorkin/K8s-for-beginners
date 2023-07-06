@@ -1,0 +1,9 @@
+apiVersion: apps.gitlab.com/v1beta2
+kind: Runner
+metadata:
+  name: gitlab-runner
+  namespace: gitlab-system
+spec:
+  gitlabUrl: http://gitlab-webservice-default:8181
+  buildImage: alpine
+  token: gitlab-runner-secret
