@@ -13,7 +13,7 @@ data:
     http {
       server {
           listen       80;
-          rewrite .* http://linkedin.devorkin.net permanent;
+          rewrite .* https://www.linkedin.com permanent;
       }
     }
 ---

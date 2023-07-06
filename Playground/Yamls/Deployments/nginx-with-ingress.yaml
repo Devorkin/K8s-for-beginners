@@ -21,7 +21,7 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-  - host: demo.server3.devorkin.net
+  - host: demo.node.tests.net
     http:
       paths:
       - backend:

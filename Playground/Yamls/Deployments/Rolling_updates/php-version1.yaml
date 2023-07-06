@@ -1,0 +1,78 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: php-ver1
+  namespace: playground
+spec:
+  ports:
+  - name: http
+    nodePort: 30218
+    port: 80
+    protocol: TCP
+    targetPort: 80
+  selector:
+    type: php
+  type: NodePort
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: index.php
+  namespace: playground
+data:
+  index.php: |
+    <HTML>
+    <HEAD><TITLE>This is my home page!</TITLE></HEAD>
+    <BODY BGCOLOR="#000000" TEXT="#ffffff">
+    <P>
+    Welcome to my home page!<BR />
+    Lets talk about: Geni, Vidi, Vici<BR /><BR />
+    <?php
+    echo "Running server name => " . getenv('MY_NODE_NAME') . " => " . gethostname();
+    echo "<BR /><BR />My BUZZ word is: " . getenv('MY_BUZZ_WORD')
+    ?>
+    <BR /><BR /><BR />Version: V1/alpha
+    </P>
+    </BODY>
+    </HTML>
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: php-apache
+  namespace: playground
+  labels:
+    app: apache
+    type: php
+spec:
+  replicas: 100
+  selector:
+    matchLabels:
+      type: php
+  template:
+    metadata:
+      labels:
+        type: php
+    spec:
+      containers:
+      - name: php-apache
+        env:
+        - name: MY_NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        - name: MY_BUZZ_WORD
+          value: 'DELTA'
+        image: php:8-apache
+        ports:
+        - containerPort: 80
+        volumeMounts:
+        - name: html-data
+          mountPath: /var/www/html
+      volumes:
+      - name: html-data
+        configMap:
+          name: index.php
+          items:
+          - key: index.php
+            path: index.php

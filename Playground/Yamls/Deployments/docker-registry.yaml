@@ -90,7 +90,7 @@ spec:
 # spec:
 #   ingressClassName: nginx
 #   rules:
-#   - host: docker-registry.server3.devorkin.net
+#   - host: docker-registry.tests.net
 #     http:
 #       paths:
 #       - backend:
