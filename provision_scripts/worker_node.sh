@@ -7,7 +7,7 @@
 # Check the HW this OS running on
 if [ -d /vagrant ]; then
   ip_addr=$(getent hosts ${hostname} | awk '{print $1}' | grep -v '127.0' | grep -v '172.17' | grep -v '10.0.2.15' | head -n1)
-  shared_path=/vagrant
+  shared_path=/vagrant/Shared_between_nodes
 
   # SSHD configuration
   if sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config; then systemctl restart sshd; fi
@@ -22,7 +22,15 @@ if [[ ! -d $shared_path ]]; then
   exit 1
 fi
 
+# EXIT IF MASTER NODE AIN'T WORKING PROPERLLY
+return_value=$(cat $shared_path/vagrant_k8s_for_begginers.exitcode)
+if [ $return_value == 1 ]; then
+  echo "K8s Master node failed to provision - please fix it; and then re-run `vagrant up` per each requested node"
+  exit 1
+fi
+
 # Script declarations
+source /vagrant/provision_scripts/provision_variables.cnf
 ca_name='k8s-playground-ca'
 # k8s_node_max_pods=90
 
@@ -46,7 +54,8 @@ fi
 
 ## Install packages
 apt update; apt install -y apt-transport-https ca-certificates curl git gnupg2 jq software-properties-common vim wget
-apt install -y containerd=1.5.9* cri-tools=1.25.0-00 kubeadm=1.24.7-00 kubectl=1.24.7-00 kubelet=1.24.7-00
+apt-mark unhold containerd cri-tools kubeadm kubectl kubelet
+apt install -y containerd=${containerd_version} cri-tools=${cri_version} kubeadm=${k8s_packages_version} kubectl=${k8s_packages_version} kubelet=${k8s_packages_version}
 apt-mark hold containerd cri-tools kubeadm kubectl kubelet
 
 # Enable kernel modules

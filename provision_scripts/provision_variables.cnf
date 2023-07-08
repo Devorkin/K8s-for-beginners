@@ -1,0 +1,3 @@
+containerd_version="1.6.12*"
+cri_version="1.25.0-00"
+k8s_packages_version="1.25.11-00"
