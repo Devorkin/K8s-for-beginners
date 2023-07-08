@@ -31,6 +31,7 @@ fi
 
 # Script declarations
 source /vagrant/provision_scripts/provision_variables.cnf
+all_k8s_packages_installed='true'
 ca_name='k8s-playground-ca'
 # k8s_node_max_pods=90
 
@@ -54,9 +55,21 @@ fi
 
 ## Install packages
 apt update; apt install -y apt-transport-https ca-certificates curl git gnupg2 jq software-properties-common vim wget
-apt-mark unhold containerd cri-tools kubeadm kubectl kubelet
-apt install -y containerd=${containerd_version} cri-tools=${cri_version} kubeadm=${k8s_packages_version} kubectl=${k8s_packages_version} kubelet=${k8s_packages_version}
-apt-mark hold containerd cri-tools kubeadm kubectl kubelet
+
+for package in ${confirm_installed_packages[@]}; do apt-mark unhold ${package}; done
+
+k8s_installation_cmd="apt install -y containerd=${containerd_version} cri-tools=${cri_version}"
+for package in ${k8s_packages[@]}; do k8s_installation_cmd+=" ${package}=${k8s_packages_version}"; done
+${k8s_installation_cmd}
+
+for i in ${confirm_installed_packages[@]}; do
+  if [ $all_k8s_packages_installed == 'true' ] && ! dpkg -l | grep ${i} &> /dev/null; then
+    all_k8s_packages_installed='false'
+  fi
+done
+if [[ $all_k8s_packages_installed == 'true' ]]; then
+  for package in ${confirm_installed_packages[@]}; do apt-mark hold ${package}; done
+fi
 
 # Enable kernel modules
 modprobe overlay

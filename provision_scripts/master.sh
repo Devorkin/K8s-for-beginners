@@ -34,7 +34,7 @@ fi
 source /vagrant/provision_scripts/provision_variables.cnf
 ca_life_time='3650'
 ca_name='k8s-playground-ca'
-k8s_packages_installed='false'
+all_k8s_packages_installed='true'
 k8s_pods_network_cidr=10.100.100.0/24
 
 # Disable SWAP
@@ -66,19 +66,20 @@ fi
 
 ## Install packages
 apt update; apt install -y apt-transport-https ca-certificates curl git golang gnupg2 helm jq software-properties-common vim wget
-apt-mark unhold containerd cri-tools kubeadm kubectl kubelet
-apt install -y containerd=${containerd_version} cri-tools=${cri_version} kubeadm=${k8s_packages_version} kubectl=${k8s_packages_version} kubelet=${k8s_packages_version}
-apt-mark hold containerd cri-tools kubeadm kubectl kubelet
 
-if dpkg -l | grep 'containerd' &> /dev/null && \
-  dpkg -l | grep 'cri-tools' &> /dev/null && \
-  dpkg -l | grep 'kubeadm' &> /dev/null && \
-  dpkg -l | grep 'kubectl' &> /dev/null && \
-  dpkg -l | grep 'kubelet' &> /dev/null \
-  ; then
-  k8s_packages_installed='true'
-else
-  k8s_packages_installed='false'
+for package in ${confirm_installed_packages[@]}; do apt-mark unhold ${package}; done
+
+k8s_installation_cmd="apt install -y containerd=${containerd_version} cri-tools=${cri_version}"
+for package in ${k8s_packages[@]}; do k8s_installation_cmd+=" ${package}=${k8s_packages_version}"; done
+${k8s_installation_cmd}
+
+for i in ${confirm_installed_packages[@]}; do
+  if [ $all_k8s_packages_installed == 'true' ] && ! dpkg -l | grep ${i} &> /dev/null; then
+    all_k8s_packages_installed='false'
+  fi
+done
+if [[ $all_k8s_packages_installed == 'true' ]]; then
+  for package in ${confirm_installed_packages[@]}; do apt-mark hold ${package}; done
 fi
 
 # Enable kernel modules
@@ -103,13 +104,13 @@ mkdir -p /opt/k8s/custom_resources/calico &> /dev/null
 mkdir -p $HOME/.kube; mkdir -p /home/vagrant/.kube &> /dev/null
 
 # Configure Containerd
-if [[ $k8s_packages_installed == 'true' ]]; then
+if [[ $all_k8s_packages_installed == 'true' ]]; then
   if [ ! -f /etc/containerd/config.toml ]; then containerd config default > /etc/containerd/config.toml; fi
   if sed -i 's/SystemdCgroup = false/SystemdCgroup = true/' /etc/containerd/config.toml; then systemctl restart containerd; fi
 fi
 
 # Initialize Kubernetes cluster
-if [[ $k8s_packages_installed == 'true' ]]; then
+if [[ $all_k8s_packages_installed == 'true' ]]; then
   if ! systemctl status kubelet &> /dev/null; then
     kubeadm config images pull
     kubeadm init --pod-network-cidr=$k8s_pods_network_cidr --apiserver-advertise-address $ip_addr
@@ -124,7 +125,7 @@ fi
 
 
 # Define a CA Authority Secret
-if [[ $k8s_packages_installed == 'true' ]]; then
+if [[ $all_k8s_packages_installed == 'true' ]]; then
   if [[ ${PROVISION_SELF_SIGNED_CA_CRT} == "true" ]] && ! kubectl get namespace ssl-ready &> /dev/null; then
     kubectl create namespace ssl-ready
 cat <<EOF | kubectl apply -f -
@@ -144,7 +145,7 @@ fi
 
 
 # Install K8s Network plugin - Calico
-if [[ $k8s_packages_installed == 'true' ]]; then
+if [[ $all_k8s_packages_installed == 'true' ]]; then
   if ! kubectl get namespace tigera-operator &> /dev/null; then kubectl create -f https://raw.githubusercontent.com/projectcalico/calico/v3.25.0/manifests/tigera-operator.yaml; fi
   if [ ! -f /opt/k8s/custom_resources/calico/custom-resources.yaml ]; then wget --quiet https://raw.githubusercontent.com/projectcalico/calico/v3.25.0/manifests/custom-resources.yaml -O /opt/k8s/custom_resources/calico/custom-resources.yaml; fi
   sed -i "s|192.168.0.0/16|$k8s_pods_network_cidr|" /opt/k8s/custom_resources/calico/custom-resources.yaml
@@ -152,7 +153,7 @@ if [[ $k8s_packages_installed == 'true' ]]; then
 fi
 
 # Rook-Ceph Storage-Forest
-if [[ $k8s_packages_installed == 'true' ]]; then
+if [[ $all_k8s_packages_installed == 'true' ]]; then
   if [[ ${PROVISION_CEPH} == "true" ]]; then
     cp /vagrant/Playground/Helm/Rook-Ceph/cronjob /etc/cron.d/rook-ceph-setup
     echo 'Rook provision will start in 5mis, via Cronjob...'
@@ -163,7 +164,7 @@ fi
 
 
 # Cert-Manager
-if [[ $k8s_packages_installed == 'true' ]]; then
+if [[ $all_k8s_packages_installed == 'true' ]]; then
   if [[ ${PROVISION_CERT_MANAGER} == "true" ]]; then
     if [ ! -f /etc/cron.d/cert-manager-setup ]; then cp /vagrant/Playground/Helm/Cert-Manager/cronjob /etc/cron.d/cert-manager-setup; fi
     echo 'Cert-Manager provision will start in 5mis, via Cronjob...'
@@ -174,7 +175,7 @@ fi
 
 
 # Ingress-Nginx
-if [[ $k8s_packages_installed == 'true' ]]; then
+if [[ $all_k8s_packages_installed == 'true' ]]; then
   if [[ ${PROVISION_INGRESS_NGINX} == "true" ]]; then
     if [ ! -f /etc/cron.d/ingress-nginx-setup ]; then cp /vagrant/Playground/Helm/Ingress-Nginx/cronjob /etc/cron.d/ingress-nginx-setup; fi
     echo 'Ingress-Nginx provision will start in 5mis, via Cronjob...'
@@ -191,7 +192,7 @@ fi
 
 ## Custromized Prometheus stack setup ###
 # Install some Go packages
-if [[ $k8s_packages_installed == 'true' ]]; then
+if [[ $all_k8s_packages_installed == 'true' ]]; then
   for package in "github.com/brancz/gojsontoyaml" "github.com/google/go-jsonnet/cmd/jsonnet" "github.com/jsonnet-bundler/jsonnet-bundler/cmd/jb"; do
     go install -v ${package}@latest
   done
@@ -224,7 +225,7 @@ fi
 
 
 # Default Playground configurations:
-if [[ $k8s_packages_installed == 'true' ]]; then
+if [[ $all_k8s_packages_installed == 'true' ]]; then
   kubectl create -f /vagrant/Playground/Yamls/Default/PriorityClasses/default.yaml
   kubectl create -f /vagrant/Playground/Yamls/Default/NameSpaces/default.yaml
 
