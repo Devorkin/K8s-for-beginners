@@ -20,3 +20,4 @@ Playground/Yamls/Deployments/mediawiki.yaml
 Playground/Yamls/Deployments/mysql.yaml
 Playground/Yamls/Deployments/pvc-try-me.yaml
 Playground/Yamls/Rook-Ceph
+Shared_between_nodes/*
