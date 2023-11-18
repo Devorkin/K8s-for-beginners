@@ -65,21 +65,21 @@ kubectl wait -n rook-ceph pod -l app=rook-ceph-tools --for condition=Ready --tim
 
 # Setup Ceph RBD Block StorageClass
 kubectl create -f $playground_dir/Yamls/Rook-Ceph/block-storageclass.yaml
-while ! kubectl get storageclass -n rook-ceph rook-ceph-block &> /dev/null; do sleep 10; done
+while ! kubectl get storageclass rook-ceph-block &> /dev/null; do sleep 10; done
 
 # Setup Ceph Filesystem StorageClass
 kubectl create -f $playground_dir/Yamls/Rook-Ceph/cephfs-filesystem.yaml
 while ! kubectl get -n rook-ceph CephFilesystem rook-ceph-cephfs &> /dev/null; do sleep 10; done
 while ! kubectl wait -n rook-ceph pods -l ceph_daemon_type=mds --for condition=Ready --timeout=300s; do sleep 10; done
 kubectl create -f $playground_dir/Yamls/Rook-Ceph/cephfs-storageclass.yaml
-while ! kubectl get storageclass -n rook-ceph rook-ceph-filesystem &> /dev/null; do sleep 10; done
+while ! kubectl get storageclass rook-ceph-filesystem &> /dev/null; do sleep 10; done
 
 # Setup Ceph CSI Object StorageClass
 kubectl create -f $playground_dir/Yamls/Rook-Ceph/object-store.yaml
 while ! kubectl get -n rook-ceph CephObjectStore rook-ceph-object-store | grep Ready &> /dev/null; do sleep 60; done
 kubectl wait -n rook-ceph pod -l app=rook-ceph-rgw --for condition=ready --timeout=300s
 kubectl create -f $playground_dir/Yamls/Rook-Ceph/object-bucket-storageclass.yaml
-while ! kubectl get storageclass -n rook-ceph rook-ceph-bucket &> /dev/null; do sleep 10; done
+while ! kubectl get storageclass rook-ceph-bucket &> /dev/null; do sleep 10; done
 
 if [ -f /etc/cron.d/rook-ceph-setup ]; then rm -f /etc/cron.d/rook-ceph-setup; fi
 if [ -f /var/run/rook-ceph.pid ]; then rm -f /var/run/rook-ceph.pid; fi
