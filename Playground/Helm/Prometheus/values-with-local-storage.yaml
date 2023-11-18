@@ -1,0 +1,27 @@
+grafana:
+  adminPassword: admin
+  ingress:
+    enabled: true
+    hosts:
+      - grafana.tests.net
+    ingressClassName: nginx
+    path: /
+
+prometheus:
+  ingress:
+    enabled: true
+    hosts:
+      - prometheus.tests.net
+    ingressClassName: nginx
+    path: /
+  prometheusSpec:
+    retention: 31d
+    storageSpec:
+      volumeClaimTemplate:
+       spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 20Gi
+      # emptyDir:
+      # medium: Memory
