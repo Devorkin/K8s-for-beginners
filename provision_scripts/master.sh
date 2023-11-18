@@ -197,7 +197,7 @@ fi
 
 # Prometheus
 if [[ ${PROVISION_PROMETHEUS} == "true" ]]; then
-  ./vagrant/Playground/Helm/Prometheus/prometheus.sh install
+  /vagrant/Playground/Helm/Prometheus/prometheus.sh install
 fi
 ###
 

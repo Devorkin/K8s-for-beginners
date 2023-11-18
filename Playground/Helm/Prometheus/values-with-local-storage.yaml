@@ -22,6 +22,17 @@ prometheus:
         accessModes: ["ReadWriteOnce"]
         resources:
           requests:
-            storage: 20Gi
+            storage: 10Gi
       # emptyDir:
       # medium: Memory
+
+
+thanosRuler:
+  thanosRulerSpec:
+    storage:
+      volumeClaimTemplate:
+        spec:
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 10Gi

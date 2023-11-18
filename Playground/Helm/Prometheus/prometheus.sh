@@ -35,7 +35,7 @@ install () {
 
   helm install \
     --namespace ${NAMESPACE} \
-    prometheus ${HELM_REPO}
+    prometheus ${HELM_REPO} \
     -f ${VALUES_FILE_PATH}
 }
 
@@ -57,7 +57,10 @@ uninstall () {
 }
 
 update () {
-  helm upgrade -f ${VALUES_FILE_PATH} prometheus ${HELM_REPO} --install
+  helm upgrade --namespace ${NAMESPACE} \
+    prometheus ${HELM_REPO} \
+    -f ${VALUES_FILE_PATH} \
+    --install
 }
 
 $1

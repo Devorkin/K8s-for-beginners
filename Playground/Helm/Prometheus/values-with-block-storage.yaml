@@ -23,4 +23,15 @@ prometheus:
         accessModes: ["ReadWriteOnce"]
         resources:
           requests:
-            storage: 20Gi
+            storage: 10Gi
+
+thanosRuler:
+  thanosRulerSpec:
+    storage:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: rook-ceph-block
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 10Gi
