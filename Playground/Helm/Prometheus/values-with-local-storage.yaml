@@ -7,6 +7,15 @@ grafana:
     ingressClassName: nginx
     path: /
 
+  persistence:
+    accessModes:
+      - ReadWriteOnce
+    enabled: true
+    finalizers:
+      - kubernetes.io/pvc-protection
+    size: 4Gi
+    type: pvc
+
 prometheus:
   ingress:
     enabled: true
@@ -14,6 +23,7 @@ prometheus:
       - prometheus.tests.net
     ingressClassName: nginx
     path: /
+
   prometheusSpec:
     retention: 31d
     storageSpec:
@@ -25,7 +35,6 @@ prometheus:
             storage: 10Gi
       # emptyDir:
       # medium: Memory
-
 
 thanosRuler:
   thanosRulerSpec:
