@@ -197,7 +197,9 @@ fi
 
 # Prometheus
 if [[ ${PROVISION_PROMETHEUS} == "true" ]]; then
-  /vagrant/Playground/Helm/Prometheus/prometheus.sh install
+  if [ ! -f /etc/cron.d/prometheus-setup ]; then cp /vagrant/Playground/Helm/Prometheus/cronjob /etc/cron.d/prometheus-setup; fi
+  echo 'Prometheus provision will start in 5mis, via Cronjob...'
+  echo 'You can watch its provision log at: /var/log/k8s-prometheus.log'
 fi
 ###
 

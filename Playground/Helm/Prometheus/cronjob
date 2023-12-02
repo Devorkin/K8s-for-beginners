@@ -1,0 +1,1 @@
+*/5 * * * *   root bash /vagrant/Playground/Helm/Prometheus/prometheus.sh install
