@@ -168,6 +168,9 @@ if [[ $all_k8s_packages_installed == 'true' ]]; then
     cp /vagrant/Playground/Helm/Rook-Ceph/cronjob /etc/cron.d/rook-ceph-setup
     echo 'Rook provision will start in 5mis, via Cronjob...'
     echo 'You can watch its provision log at: /var/log/k8s-rook-ceph.log'
+
+    # Setting a LOCK file - for other features to look for, and wait until it is erased
+    touch /var/lock/rook-ceph.lck
   fi
 fi
 ###
