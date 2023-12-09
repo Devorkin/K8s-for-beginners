@@ -114,3 +114,6 @@ fi
 #   echo "KUBELET_CONFIG_ARGS=\"--node-ip ${ip_addr}\"" >> /var/lib/kubelet/kubeadm-flags.env
 #   systemctl restart kubelet
 # fi
+
+# Setting up Playground directories (For Local storageClass)
+mkdir /mnt/k8s-local-storage

@@ -124,6 +124,14 @@ fi
 # kubectl taint nodes --all node-role.kubernetes.io/control-plane-
 
 
+# Yehonatan D. initial Playground K8s cluster configurations:
+kubectl create -f /vagrant/Playground/Yamls/Default/PriorityClasses/default.yaml
+kubectl create -f /vagrant/Playground/Yamls/Default/NameSpaces/default.yaml
+kubectl create -f /vagrant/Playground/Yamls/Default/StorageClass/StorageClass.yaml
+kubectl create -f /vagrant/Playground/Yamls/Default/StorageClass/PersistentVolume.yaml
+###
+
+
 # Define a CA Authority Secret
 if [[ $all_k8s_packages_installed == 'true' ]]; then
   if [[ ${PROVISION_SELF_SIGNED_CA_CRT} == "true" ]] && ! kubectl get namespace ssl-ready &> /dev/null; then
@@ -151,6 +159,8 @@ if [[ $all_k8s_packages_installed == 'true' ]]; then
   sed -i "s|192.168.0.0/16|$k8s_pods_network_cidr|" /opt/k8s/custom_resources/calico/custom-resources.yaml
   kubectl create -f /opt/k8s/custom_resources/calico/custom-resources.yaml
 fi
+###
+
 
 # Rook-Ceph Storage-Forest
 if [[ $all_k8s_packages_installed == 'true' ]]; then
@@ -158,6 +168,9 @@ if [[ $all_k8s_packages_installed == 'true' ]]; then
     cp /vagrant/Playground/Helm/Rook-Ceph/cronjob /etc/cron.d/rook-ceph-setup
     echo 'Rook provision will start in 5mis, via Cronjob...'
     echo 'You can watch its provision log at: /var/log/k8s-rook-ceph.log'
+
+    # Setting a LOCK file - for other features to look for, and wait until it is erased
+    touch /var/lock/rook-ceph.lck
   fi
 fi
 ###
@@ -166,7 +179,7 @@ fi
 # Cert-Manager
 if [[ $all_k8s_packages_installed == 'true' ]]; then
   if [[ ${PROVISION_CERT_MANAGER} == "true" ]]; then
-    if [ ! -f /etc/cron.d/cert-manager-setup ]; then cp /vagrant/Playground/Helm/Cert-Manager/cronjob /etc/cron.d/cert-manager-setup; fi
+    cp /vagrant/Playground/Helm/Cert-Manager/cronjob /etc/cron.d/cert-manager-setup
     echo 'Cert-Manager provision will start in 5mis, via Cronjob...'
     echo 'You can watch its provision log at: /var/log/cert-manager.log'
   fi
@@ -177,7 +190,7 @@ fi
 # Ingress-Nginx
 if [[ $all_k8s_packages_installed == 'true' ]]; then
   if [[ ${PROVISION_INGRESS_NGINX} == "true" ]]; then
-    if [ ! -f /etc/cron.d/ingress-nginx-setup ]; then cp /vagrant/Playground/Helm/Ingress-Nginx/cronjob /etc/cron.d/ingress-nginx-setup; fi
+    cp /vagrant/Playground/Helm/Ingress-Nginx/cronjob /etc/cron.d/ingress-nginx-setup
     echo 'Ingress-Nginx provision will start in 5mis, via Cronjob...'
     echo 'You can watch its provision log at: /var/log/ingress-nginx.log'
   fi
@@ -185,52 +198,18 @@ fi
 ###
 
 
-# Kube-Prometheus
-## ToDos:
-### Install via Helm
-### Install & play with Grafana Loki
-
-## Custromized Prometheus stack setup ###
-# Install some Go packages
-if [[ $all_k8s_packages_installed == 'true' ]]; then
-  for package in "github.com/brancz/gojsontoyaml" "github.com/google/go-jsonnet/cmd/jsonnet" "github.com/jsonnet-bundler/jsonnet-bundler/cmd/jb"; do
-    go install -v ${package}@latest
-  done
-  export PATH=$PATH:/root/go/bin/
-
-  # Clone the project
-  mkdir /opt/k8s/custom_resources/prometheus-jsonnet 2> /dev/null; cd /opt/k8s/custom_resources/prometheus-jsonnet
-  if [ ! -f jsonnetfile.json ]; then jb init; fi
-
-  # The below was confirmed to work with Kube-prometheus release-0.11 and K8s 1.24.7, Check comptability at: https://github.com/prometheus-operator/kube-prometheus
-  jb install github.com/prometheus-operator/kube-prometheus/jsonnet/kube-prometheus@main
-  for file in "build.sh" "example.jsonnet"; do
-    if [ ! -f $file ]; then wget --quiet https://raw.githubusercontent.com/prometheus-operator/kube-prometheus/main/$file -O $file; fi
-  done
-
-  sed -i "s|// (import 'kube-prometheus/addons/node-ports.libsonnet') +|(import 'kube-prometheus/addons/node-ports.libsonnet') +|g" example.jsonnet
-  sed -i "/pyrra.libsonnet/ a \ \ (import 'kube-prometheus/addons/networkpolicies-disabled.libsonnet') +" example.jsonnet
-  if [ ! -d manifests ]; then bash ./build.sh; fi
-
-  if ! kubectl get namespace monitoring &> /dev/null; then
-    kubectl apply --server-side -f manifests/setup
-    kubectl wait \
-      --for condition=Established \
-      --all CustomResourceDefinition \
-      --namespace=monitoring
-    kubectl apply -f manifests/
-  fi
+# Prometheus
+if [[ ${PROVISION_PROMETHEUS} == "true" ]]; then
+  if [[ ${PROVISION_CEPH} == "true" ]]; then SETUP_MODE='Rook-Ceph'; else SETUP_MODE='Local'; fi
+  cp /vagrant/Playground/Helm/Prometheus/cronjob /etc/cron.d/prometheus-setup
+  sed -i "s/SETUP_MODE/${SETUP_MODE}/" /etc/cron.d/prometheus-setup
+  echo 'Prometheus provision will start in 5mis, via Cronjob...'
+  echo 'You can watch its provision log at: /var/log/k8s-prometheus.log'
 fi
 ###
 
 
-# Default Playground configurations:
-if [[ $all_k8s_packages_installed == 'true' ]]; then
-  kubectl create -f /vagrant/Playground/Yamls/Default/PriorityClasses/default.yaml
-  kubectl create -f /vagrant/Playground/Yamls/Default/NameSpaces/default.yaml
-
-  kubeadm token create --print-join-command | sed "s/${ip_addr}/$(hostname)/" > $shared_path/k8s_cluster_token.sh
-fi
+kubeadm token create --print-join-command | sed "s/${ip_addr}/$(hostname)/" > $shared_path/k8s_cluster_token.sh
 
 if grep $(hostname) $shared_path/k8s_cluster_token.sh &> /dev/null; then
   echo '0' > $shared_path/vagrant_k8s_for_begginers.exitcode

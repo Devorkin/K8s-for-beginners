@@ -1,0 +1,49 @@
+grafana:
+  adminPassword: admin
+
+  ingress:
+    enabled: true
+    hosts:
+      - grafana.tests.net
+    ingressClassName: nginx
+    path: /
+
+  persistence:
+      accessModes:
+        - ReadWriteOnce
+      enabled: true
+      finalizers:
+        - kubernetes.io/pvc-protection
+      size: 4Gi
+      storageClassName: rook-ceph-block
+      type: pvc
+
+prometheus:
+  ingress:
+    enabled: true
+    hosts:
+      - prometheus.tests.net
+    ingressClassName: nginx
+    path: /
+
+  prometheusSpec:
+    retention: 31d
+    storageSpec:
+      volumeClaimTemplate:
+       spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 10Gi
+        storageClassName: rook-ceph-block
+
+thanosRuler:
+  thanosRulerSpec:
+    storage:
+      volumeClaimTemplate:
+        spec:
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 10Gi
+          storageClassName: rook-ceph-block

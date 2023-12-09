@@ -47,7 +47,6 @@ fi
 # Source code: $playground_dir/Yamls/Rook-Ceph/rook-ConfigMap-config-override.yaml
 ###
 
-if ! kubectl get priorityclass | grep high-priority &> /dev/null; then kubectl crete -f $playground_dir/Yamls/Default/PriorityClasses/default.yaml; fi
 helm repo add rook-release https://charts.rook.io/release
 helm install --create-namespace --namespace rook-ceph rook-ceph rook-release/rook-ceph -f $playground_dir/Helm/Rook-Ceph/values.yaml
 kubectl wait -n rook-ceph pod -l app=rook-ceph-operator --for condition=Ready --timeout=300s
@@ -83,3 +82,4 @@ while ! kubectl get storageclass rook-ceph-bucket &> /dev/null; do sleep 10; don
 
 if [ -f /etc/cron.d/rook-ceph-setup ]; then rm -f /etc/cron.d/rook-ceph-setup; fi
 if [ -f /var/run/rook-ceph.pid ]; then rm -f /var/run/rook-ceph.pid; fi
+if [ -f /var/lock/rook-ceph.lck ]; then rm -f /var/lock/rook-ceph.lck; fi
