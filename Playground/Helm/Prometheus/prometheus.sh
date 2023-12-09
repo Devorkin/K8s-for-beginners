@@ -4,12 +4,6 @@ BASE_DIR="$(dirname "${BASH_SOURCE[0]}")"
 HELM_REPO='prometheus-community/kube-prometheus-stack'
 NAMESPACE='monitoring'
 
-if [ -f /var/lock/rook-ceph.lck ]; then
-  VALUES_FILE_PATH="${BASE_DIR}/values-with-block-storage.yaml"
-else
-  VALUES_FILE_PATH="${BASE_DIR}/values-with-local-storage.yaml"
-fi
-
 # Dependecy checks and variables declaration
 if [ ! $1 ]; then
   echo "Please run this script with an argument install||uninstall||update"
@@ -17,6 +11,20 @@ if [ ! $1 ]; then
 elif [ $1 != "install" ] && [ $1 != "update" ] && [ $1 != "uninstall" ]; then
   echo "Please run this script with an argument install||uninstall"
   exit 2
+fi
+
+if [ $1 != 'uninstall' ] && [ ! $2 ]; then
+  echo "Please run this script with an argument Local||Rook-Ceph"
+  exit 8
+elif [ $1 != 'uninstall' ] && [ $2 != "Local" ] && [ $2 != "Rook-Ceph" ]; then
+  echo "Please run this script with an argument Local||Rook-Ceph"
+  exit 9
+fi
+
+if [[ $2 == 'Local' ]]; then
+  VALUES_FILE_PATH="${BASE_DIR}/values-with-local-storage.yaml"
+elif [[ $2 == 'Rook-Ceph' ]]; then
+  VALUES_FILE_PATH="${BASE_DIR}/values-with-block-storage.yaml"
 fi
 
 if ! which helm &>/dev/null; then echo -e "`date +"%d-%m-%y %H:%M:%S"`\tHelm is missing!" | tee -a /var/log/k8s-prometheus.log; exit 3; fi
@@ -77,6 +85,10 @@ uninstall () {
               'servicemonitors.monitoring.coreos.com' \
               'thanosrulers.monitoring.coreos.com'; do
     kubectl delete crd ${CRD} | tee -a /var/log/k8s-prometheus.log
+  done
+
+  for PVC in $(kubectl get pvc -n ${NAMESPACE} -o json 2> /dev/null | jq -r '.items[].metadata.name'); do
+    kubectl -n ${NAMESPACE} delete pvc/${PVC} | tee -a /var/log/k8s-prometheus.log
   done
 }
 

@@ -1,1 +1,1 @@
-*/5 * * * *   root bash /vagrant/Playground/Helm/Prometheus/prometheus.sh install
+*/1 * * * *   root bash /vagrant/Playground/Helm/Prometheus/prometheus.sh install SETUP_MODE

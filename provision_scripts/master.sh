@@ -179,7 +179,7 @@ fi
 # Cert-Manager
 if [[ $all_k8s_packages_installed == 'true' ]]; then
   if [[ ${PROVISION_CERT_MANAGER} == "true" ]]; then
-    if [ ! -f /etc/cron.d/cert-manager-setup ]; then cp /vagrant/Playground/Helm/Cert-Manager/cronjob /etc/cron.d/cert-manager-setup; fi
+    cp /vagrant/Playground/Helm/Cert-Manager/cronjob /etc/cron.d/cert-manager-setup
     echo 'Cert-Manager provision will start in 5mis, via Cronjob...'
     echo 'You can watch its provision log at: /var/log/cert-manager.log'
   fi
@@ -190,7 +190,7 @@ fi
 # Ingress-Nginx
 if [[ $all_k8s_packages_installed == 'true' ]]; then
   if [[ ${PROVISION_INGRESS_NGINX} == "true" ]]; then
-    if [ ! -f /etc/cron.d/ingress-nginx-setup ]; then cp /vagrant/Playground/Helm/Ingress-Nginx/cronjob /etc/cron.d/ingress-nginx-setup; fi
+    cp /vagrant/Playground/Helm/Ingress-Nginx/cronjob /etc/cron.d/ingress-nginx-setup
     echo 'Ingress-Nginx provision will start in 5mis, via Cronjob...'
     echo 'You can watch its provision log at: /var/log/ingress-nginx.log'
   fi
@@ -200,7 +200,9 @@ fi
 
 # Prometheus
 if [[ ${PROVISION_PROMETHEUS} == "true" ]]; then
-  if [ ! -f /etc/cron.d/prometheus-setup ]; then cp /vagrant/Playground/Helm/Prometheus/cronjob /etc/cron.d/prometheus-setup; fi
+  if [[ ${PROVISION_CEPH} == "true" ]]; then SETUP_MODE='Rook-Ceph'; else SETUP_MODE='Local'; fi
+  cp /vagrant/Playground/Helm/Prometheus/cronjob /etc/cron.d/prometheus-setup
+  sed -i "s/SETUP_MODE/${SETUP_MODE}/" /etc/cron.d/prometheus-setup
   echo 'Prometheus provision will start in 5mis, via Cronjob...'
   echo 'You can watch its provision log at: /var/log/k8s-prometheus.log'
 fi
