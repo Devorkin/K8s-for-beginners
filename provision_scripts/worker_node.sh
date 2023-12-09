@@ -101,6 +101,9 @@ mkdir -p /etc/containerd &> /dev/null
 if [ ! -f /etc/containerd/config.toml ]; then containerd config default > /etc/containerd/config.toml; fi
 if sed -i 's/SystemdCgroup = false/SystemdCgroup = true/' /etc/containerd/config.toml; then systemctl restart containerd; fi
 
+# Add directories, that may be used as PVs
+mkdir -p /mnt/vault/{audit,data}
+
 if ! systemctl status kubelet &> /dev/null; then
   if [[ -f ${shared_path}/k8s_cluster_token.sh ]]; then
     echo -e "[INFO]\tAdding node to an Active K8s cluster..."
