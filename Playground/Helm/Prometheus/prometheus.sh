@@ -1,4 +1,5 @@
 #! /bin/bash
+set -x
 
 BASE_DIR="$(dirname "${BASH_SOURCE[0]}")"
 HELM_REPO='prometheus-community/kube-prometheus-stack'
@@ -61,6 +62,7 @@ install () {
 
   if [ -f /etc/cron.d/prometheus-setup ]; then rm -f /etc/cron.d/prometheus-setup; fi
   if [ -f /var/run/prometheus.pid ]; then rm -f /var/run/prometheus.pid; fi
+  echo -e "`date +"%d-%m-%y %H:%M:%S"`\tPrometheus installation has been completed" | tee -a /var/log/k8s-prometheus.log
 }
 
 uninstall () {
