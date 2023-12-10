@@ -83,3 +83,4 @@ while ! kubectl get storageclass rook-ceph-bucket &> /dev/null; do sleep 10; don
 if [ -f /etc/cron.d/rook-ceph-setup ]; then rm -f /etc/cron.d/rook-ceph-setup; fi
 if [ -f /var/run/rook-ceph.pid ]; then rm -f /var/run/rook-ceph.pid; fi
 if [ -f /var/lock/rook-ceph.lck ]; then rm -f /var/lock/rook-ceph.lck; fi
+echo -e "`date +"%d-%m-%y %H:%M:%S"`\tRook-Ceph installation has been completed" | tee -a /var/log/k8s-rook-ceph.log

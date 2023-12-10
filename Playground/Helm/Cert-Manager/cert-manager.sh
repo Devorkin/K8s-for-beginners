@@ -9,14 +9,14 @@ elif [[ $1 != "install" ]] && [[ $1 != "uninstall" ]]; then
   exit 1
 fi
 
-if ! which base64 &> /dev/null; then echo -e "`date +"%d-%m-%y %H:%M:%S"`\tBase64 is missing!" | tee -a /var/log/cert-manager.log; exit 2; fi
-if ! which helm &> /dev/null; then echo -e "`date +"%d-%m-%y %H:%M:%S"`\tHelm is missing!" | tee -a /var/log/cert-manager.log; exit 2; fi
-if ! which kubectl &> /dev/null; then echo -e "`date +"%d-%m-%y %H:%M:%S"`\tKubectl is missing!" | tee -a /var/log/cert-manager.log; exit 2; fi
-if ! which openssl &> /dev/null; then echo -e "`date +"%d-%m-%y %H:%M:%S"`\tOpenSSL is missing!" | tee -a /var/log/cert-manager.log; exit 2; fi
+if ! which base64 &> /dev/null; then echo -e "`date +"%d-%m-%y %H:%M:%S"`\tBase64 is missing!" | tee -a /var/log/k8s-cert-manager.log; exit 2; fi
+if ! which helm &> /dev/null; then echo -e "`date +"%d-%m-%y %H:%M:%S"`\tHelm is missing!" | tee -a /var/log/k8s-cert-manager.log; exit 2; fi
+if ! which kubectl &> /dev/null; then echo -e "`date +"%d-%m-%y %H:%M:%S"`\tKubectl is missing!" | tee -a /var/log/k8s-cert-manager.log; exit 2; fi
+if ! which openssl &> /dev/null; then echo -e "`date +"%d-%m-%y %H:%M:%S"`\tOpenSSL is missing!" | tee -a /var/log/k8s-cert-manager.log; exit 2; fi
 
 nodes_count=$(kubectl get nodes -o json | jq -r '.items[] | select(.spec.taints|not) | select(.status.conditions[].reason=="KubeletReady" and .status.conditions[].status=="True") | .metadata.name' | wc -l)
 if [ ! $nodes_count -gt 0 ]; then
-  echo -e "`date +"%d-%m-%y %H:%M:%S"`\tCert-Manager setup requires at least 1 node, currently there are ${nodes_count} registered, please enlarge your K8s cluster" | tee -a /var/log/cert-manager.log
+  echo -e "`date +"%d-%m-%y %H:%M:%S"`\tCert-Manager setup requires at least 1 node, currently there are ${nodes_count} registered, please enlarge your K8s cluster" | tee -a /var/log/k8s-cert-manager.log
   exit 3
 fi
 
@@ -29,12 +29,12 @@ install() {
   if [ ! -f /var/run/cert-manager.pid ]; then
     echo $$ > /var/run/cert-manager.pid
   else
-    echo -e "`date +"%d-%m-%y %H:%M:%S"`\tCert-Manager setup is already running in the background..." | tee -a /var/log/cert-manager.log
-    echo -e "`date +"%d-%m-%y %H:%M:%S"`\tUse \`kubectl get events -n cert-manager -w\` to check the setup progress..." | tee -a /var/log/cert-manager.log
+    echo -e "`date +"%d-%m-%y %H:%M:%S"`\tCert-Manager setup is already running in the background..." | tee -a /var/log/k8s-cert-manager.log
+    echo -e "`date +"%d-%m-%y %H:%M:%S"`\tUse \`kubectl get events -n cert-manager -w\` to check the setup progress..." | tee -a /var/log/k8s-cert-manager.log
     exit 4
   fi
 
-  echo -e "`date +"%d-%m-%y %H:%M:%S"`\tInstalling Cert-Manager from Helm..." | tee -a /var/log/cert-manager.log
+  echo -e "`date +"%d-%m-%y %H:%M:%S"`\tInstalling Cert-Manager from Helm..." | tee -a /var/log/k8s-cert-manager.log
   helm upgrade --install cert-manager cert-manager \
     --repo https://charts.jetstack.io \
     --create-namespace \
@@ -43,7 +43,7 @@ install() {
   kubectl wait -n ${NAMESPACE} pod -l app.kubernetes.io/name=cert-manager --for condition=Ready --timeout=60s
 
   if ! kubectl -n ssl-ready get secret/${ca_name}-secret &> /dev/null && ! kubectl -n ${NAMESPACE} get secret/${ca_name}-secret &> /dev/null; then
-    echo -e "`date +"%d-%m-%y %H:%M:%S"`\tGenerating self-Signed CA autority certificate..." | tee -a /var/log/cert-manager.log
+    echo -e "`date +"%d-%m-%y %H:%M:%S"`\tGenerating self-Signed CA autority certificate..." | tee -a /var/log/k8s-cert-manager.log
     ca_life_time='3650'
     ROOT_CA_PATH='root-ca'
     
@@ -69,7 +69,7 @@ data:
 EOF
 
   elif kubectl -n ssl-ready get secret/${ca_name}-secret &> /dev/null && ! kubectl -n ${NAMESPACE} get secret/${ca_name}-secret &> /dev/null; then
-    echo -e "`date +"%d-%m-%y %H:%M:%S"`\tImporting an already existing CA autority certificate..." | tee -a /var/log/cert-manager.log
+    echo -e "`date +"%d-%m-%y %H:%M:%S"`\tImporting an already existing CA autority certificate..." | tee -a /var/log/k8s-cert-manager.log
   CRT_DATA=`kubectl -n ssl-ready get secret/${ca_name}-secret -o jsonpath='{.data.tls\.crt}'`
   KEY_DATA=`kubectl -n ssl-ready get secret/${ca_name}-secret -o jsonpath='{.data.tls\.key}'`
 cat <<EOF | kubectl apply -f -
@@ -100,6 +100,7 @@ EOF
 
   if [ -f /etc/cron.d/cert-manager-setup ]; then rm -f /etc/cron.d/cert-manager-setup; fi
   if [ -f /var/run/cert-manager.pid ]; then rm -f /var/run/cert-manager.pid; fi
+  echo -e "`date +"%d-%m-%y %H:%M:%S"`\tCert-Manager installation has been completed" | tee -a /var/log/k8s-cert-manager.log
 }
 
 uninstall() {
