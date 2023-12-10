@@ -1,0 +1,71 @@
+global:
+  enabled: true
+  tlsDisable: true
+
+server:
+  dev:
+    devRootToken: 'root'
+    enabled: true
+  
+  enterpriseLicense:
+    secretName: null
+  
+  ha:
+    enabled: false
+
+  image:
+    pullPolicy: 'IfNotPresent'
+
+  ingress:
+    annotations: {}
+    enabled: true
+
+    extraPaths:
+      - path: /
+        backend:
+          service:
+            name: vault
+            port:
+              number: 8200
+        pathType: Prefix
+
+    hosts:
+      - host: vault.tests.net
+        paths: []
+
+    ingressClassName: 'nginx'
+    labels: {}
+
+  livenessProbe:
+    enabled: true
+    initialDelaySeconds: 60
+    path: "/v1/sys/health?standbyok=true"
+
+  logFormat: 'standard'
+  logLevel: 'info'
+
+
+  priorityClassName: medium-priority
+
+  readinessProbe:
+    enabled: true
+    path: "/v1/sys/health?standbyok=true&sealedcode=204&uninitcode=204"
+
+  resources:
+    limits:
+      memory: '1Gi'
+    requests:
+      memory: '500Mi'
+
+  service:
+    enabled: true
+    port: 8200
+    targetport: 8200
+    type: ClusterIP
+
+
+  standalone:
+    enabled: false
+
+ui:
+  enabled: true
