@@ -1,0 +1,127 @@
+global:
+  enabled: true
+  serverTelemetry:
+    prometheusOperator: false
+  tlsDisable: true
+
+csi:
+  enabled: true
+
+injector:
+  enabled: true
+
+server:
+  auditStorage:
+    accessMode: 'ReadWriteOnce'
+    enabled: true
+    # mountPath: '/vault/audit'
+    size: 1Gi
+    storageClass: 'rook-ceph-block'
+
+  dataStorage:
+    accessMode: 'ReadWriteOnce'
+    enabled: true
+    # mountPath: '/vault/data'
+    size: 10Gi
+    storageClass: 'rook-ceph-block'
+
+  dev:
+    enabled: false
+  
+  enterpriseLicense:
+    secretName: null
+  
+  ha:
+    # config: |
+    #   listener "tcp" {
+    #     address = "[::]:8200"
+    #     cluster_address = "[::]:8201"
+    #     tls_disable = 0
+    #   }
+      
+    #   service_registration "kubernetes" {}
+    #   ui = true
+
+    enabled: true
+    replicas: 3
+
+    raft:
+      enabled: true
+      # setNodeId: true
+
+      # config: |
+      #   storage "raft" {
+      #     path = "/vault/data"
+      #       retry_join {
+      #       leader_api_addr = "http://vault-0:8201"
+      #     }
+      #     retry_join {
+      #       leader_api_addr = "http://vault-1:8201"
+      #     }
+      #     retry_join {
+      #       leader_api_addr = "http://vault-2:8201"
+      #     }
+      #   }
+
+  image:
+    pullPolicy: 'IfNotPresent'
+
+  # ingress:
+  #   activeService: true
+  #   annotations: {}
+  #   enabled: true
+
+  #   extraPaths:
+  #     - path: /
+  #       backend:
+  #         service:
+  #           name: vault
+  #           port:
+  #             number: 8200
+  #       pathType: Prefix
+
+  #   hosts:
+  #     - host: vault.tests.net
+  #       paths: []
+
+  #   ingressClassName: 'nginx'
+  #   labels: {}
+
+  # livenessProbe:
+  #   enabled: true
+  #   initialDelaySeconds: 60
+  #   path: "/v1/sys/health?standbyok=true"
+
+  logFormat: 'standard'
+  logLevel: 'info'
+
+  priorityClassName: medium-priority
+
+  # readinessProbe:
+  #   enabled: true
+  #   path: "/v1/sys/health?standbyok=true&sealedcode=204&uninitcode=204"
+
+  resources:
+    limits:
+      memory: '1Gi'
+    requests:
+      memory: '500Mi'
+
+  # service:
+  #   active:
+  #     enabled: true
+
+  #   enabled: true
+  #   port: 8200
+
+  #   standby:
+  #     enabled: true
+
+  #   targetport: 8200
+  #   type: ClusterIP
+
+  standalone:
+    enabled: false
+
+ui:
+  enabled: true
