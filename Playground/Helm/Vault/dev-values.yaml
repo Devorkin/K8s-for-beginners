@@ -4,7 +4,7 @@ global:
 
 server:
   dev:
-    devRootToken: 'root'
+    devRootToken: 'ThisIsMyT0k3n'
     enabled: true
   
   enterpriseLicense:

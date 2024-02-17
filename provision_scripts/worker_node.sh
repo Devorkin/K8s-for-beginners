@@ -54,7 +54,8 @@ if [ ! -f /etc/apt/sources.list.d/helm-stable-debian.list ]; then
 fi
 
 ## Install packages
-apt update; apt install -y apt-transport-https ca-certificates curl git gnupg2 jq software-properties-common vim wget
+apt update; apt install -y $(echo $apt_packages_to_install)
+snap install yq
 
 for package in ${confirm_installed_packages[@]}; do apt-mark unhold ${package}; done
 
@@ -70,6 +71,10 @@ done
 if [[ $all_k8s_packages_installed == 'true' ]]; then
   for package in ${confirm_installed_packages[@]}; do apt-mark hold ${package}; done
 fi
+
+## Configure packages
+echo "alias cat='batcat'" > ~/.bashrc
+echo "alias diff='diff --color'" > ~/.bashrc
 
 # Enable kernel modules
 modprobe overlay

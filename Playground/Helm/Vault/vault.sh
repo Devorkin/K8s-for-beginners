@@ -1,31 +1,27 @@
 #! /bin/bash
 
 # Variables
-INSTALLATION_TYPE='ha'                          # dev||ha||standalone
-
-#####
+##### Installation modes:
 # Dev: This mode is useful for experimenting with Vault without needing to unseal, It is insecure and will lose data on every restart (since it stores data in-memory).
 # HA: This mode uses a highly available backend storage (such as Consul) to store Vault's data.
 # Standalone: This mode uses the file storage backend and requires a volume for persistence
 #####
+INSTALLATION_TYPE='dev'                          # dev||ha||standalone
 
 NAMESPACE='playground'
 VAULT_HELM_SETUP_PATH="Helm/Vault"
-VAULT_VERSION='0.24.0'
-
+VAULT_VERSION='0.27.0'
 VALUES_FILE_PATH="${VAULT_HELM_SETUP_PATH}/${INSTALLATION_TYPE}-values.yaml"
 
 # Dependecy checks and variables declaration
-if [[ ! $1 ]]; then
-  echo "Please run this script with an argument install||uninstall"
-  exit 1
-elif [[ $1 != "install" ]] && [[ $1 != "uninstall" ]]; then
+if [[ ! $1 ]] && [[ $1 != "install" ]] && [[ $1 != "uninstall" ]]; then
   echo "Please run this script with an argument install||uninstall"
   exit 1
 fi
 
-if ! which helm &>/dev/null; then echo -e "`date +"%d-%m-%y %H:%M:%S"`\tHelm is missing!" | tee -a /var/log/k8s-vault.log; exit 1; fi
-if ! which kubectl &>/dev/null; then echo -e "`date +"%d-%m-%y %H:%M:%S"`\tKubectl is missing!" | tee -a /var/log/k8s-vault.log; exit 2; fi
+for CMD in "helm" "kubectl" "yq"; do
+  if ! which $CMD &>/dev/null; then echo -e "`date +"%d-%m-%y %H:%M:%S"`\t$CMD is missing!" | tee -a /var/log/k8s-vault.log; exit 1; fi
+done
 
 # Checking if the Helm custom values.yaml file is accessible
 CPWD=$(basename $(pwd))
@@ -51,9 +47,7 @@ install () {
       echo -e "`date +"%d-%m-%y %H:%M:%S"`\tVault cluster requires at least 3 nodes, currently there are ${nodes_count} registered, please enlarge your K8s cluster" | tee -a /var/log/k8s-vault.log
       exit 3
     fi
-  fi
-
-  if [ $INSTALLATION_TYPE == 'standalone' ]; then
+  elif [ $INSTALLATION_TYPE == 'standalone' ]; then
     if ! kubectl get pv/vault-pv &> /dev/null; then
       kubectl apply -f $playground_dir/${VAULT_HELM_SETUP_PATH}/pv.yaml
       sleep 5
@@ -68,12 +62,15 @@ install () {
     -f $playground_dir/${VALUES_FILE_PATH}
 
   while ! kubectl wait -n ${NAMESPACE} pod -l app.kubernetes.io/name=vault --for=jsonpath='{.status.phase}'=Running --timeout=120s 2> /dev/null; do sleep 5; done
-  FIRST_POD=$(kubectl -n ${NAMESPACE} get pod -l app.kubernetes.io/name=vault -o json | jq -r '.items[].metadata.name' | head -n 1)
-  VAULT_INIT_DATA=$(kubectl exec -n ${NAMESPACE} ${FIRST_POD} -- vault operator init -key-shares=1 -key-threshold=1 -format=json)
-  VAULT_TOKEN=$(echo ${VAULT_INIT_DATA} | jq -r ".root_token")
-  VAULT_UNSEAL_KEY=$(echo ${VAULT_INIT_DATA} | jq -r ".unseal_keys_b64[]")
 
-  kubectl exec -n ${NAMESPACE} ${FIRST_POD} -- vault operator unseal ${VAULT_UNSEAL_KEY} &> /dev/null
+  if [ $INSTALLATION_TYPE == 'ha' ] || [ $INSTALLATION_TYPE == 'standalone' ]; then
+    FIRST_POD=$(kubectl -n ${NAMESPACE} get pod -l app.kubernetes.io/name=vault -o json | jq -r '.items[].metadata.name' | head -n 1)
+    VAULT_INIT_DATA=$(kubectl exec -n ${NAMESPACE} ${FIRST_POD} -- vault operator init -key-shares=1 -key-threshold=1 -format=json)
+    VAULT_TOKEN=$(echo ${VAULT_INIT_DATA} | jq -r ".root_token")
+    VAULT_UNSEAL_KEY=$(echo ${VAULT_INIT_DATA} | jq -r ".unseal_keys_b64[]")
+
+    kubectl exec -n ${NAMESPACE} ${FIRST_POD} -- vault operator unseal ${VAULT_UNSEAL_KEY} &> /dev/null
+  fi
   
   if [ $INSTALLATION_TYPE == 'ha' ]; then
     for POD in $(kubectl get -n ${NAMESPACE} pod -l app.kubernetes.io/name=vault -o json | jq -r '.items[].metadata.name'); do
@@ -85,11 +82,13 @@ install () {
 
     # Check Raft list peers
     kubectl exec -n ${NAMESPACE} ${FIRST_POD} -- env VAULT_TOKEN=${VAULT_TOKEN} vault operator raft list-peers
-  fi  
+  fi
 
   echo -e "`date +"%d-%m-%y %H:%M:%S"`\tVault has been successfully installed, via ${INSTALLATION_TYPE} mode!" | tee -a /var/log/k8s-vault.log
-  echo -e "`date +"%d-%m-%y %H:%M:%S"`\tVault UNSEAL KEY: ${VAULT_UNSEAL_KEY}" | tee -a /var/log/k8s-vault.log
-  echo -e "`date +"%d-%m-%y %H:%M:%S"`\tVault TOKEN: ${VAULT_TOKEN}" | tee -a /var/log/k8s-vault.log
+  if [ $INSTALLATION_TYPE == 'ha' ] || [ $INSTALLATION_TYPE == 'standalone' ]; then
+    echo -e "`date +"%d-%m-%y %H:%M:%S"`\tVault UNSEAL KEY: ${VAULT_UNSEAL_KEY}" | tee -a /var/log/k8s-vault.log
+    echo -e "`date +"%d-%m-%y %H:%M:%S"`\tVault TOKEN: ${VAULT_TOKEN}" | tee -a /var/log/k8s-vault.log
+  fi
 }
 
 uninstall () {
