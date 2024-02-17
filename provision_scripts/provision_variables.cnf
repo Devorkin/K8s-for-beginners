@@ -2,3 +2,4 @@ containerd_version="1.6.12*"
 cri_version="1.25.0-00"
 k8s_packages=("kubeadm" "kubectl" "kubelet")
 k8s_packages_version="1.25.11-00"
+apt_packages_to_install='apt-transport-https bat ca-certificates curl etcd git gnupg2 jq software-properties-common vim wget'
