@@ -34,6 +34,8 @@ source /vagrant/provision_scripts/provision_variables.cnf
 all_k8s_packages_installed='true'
 ca_name='k8s-playground-ca'
 # k8s_node_max_pods=90
+K8S_STABLE_VERSION=$(curl -L -s https://dl.k8s.io/release/stable.txt)
+K8S_TOOLS_VERSION=${K8S_STABLE_VERSION%.*}
 
 # Disable SWAP
 swapoff -a
@@ -48,20 +50,32 @@ fi
 # Setting up repositories
 if [ ! -f /usr/share/keyrings/helm.gpg ]; then curl -s https://baltocdn.com/helm/signing.asc | gpg --dearmor > /usr/share/keyrings/helm.gpg; fi
 curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
-apt-add-repository "deb https://apt.kubernetes.io/ kubernetes-xenial main"
 if [ ! -f /etc/apt/sources.list.d/helm-stable-debian.list ]; then
   echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/helm.gpg] https://baltocdn.com/helm/stable/debian/ all main" > /etc/apt/sources.list.d/helm-stable-debian.list
 fi
+
+mkdir -p /etc/apt/keyrings 2> /dev/null
+curl -fsSL https://pkgs.k8s.io/core:/stable:/${K8S_STABLE_VERSION%.*}/deb/Release.key | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+chmod 644 /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/${K8S_STABLE_VERSION%.*}/deb/ /" | tee /etc/apt/sources.list.d/kubernetes.list
+chmod 644 /etc/apt/sources.list.d/kubernetes.list
 
 ## Install packages
 apt update; apt install -y $(echo $apt_packages_to_install)
 snap install yq
 
+# Cleanup after ETCD, as we only need its client-end
+systemctl stop etcd; systemctl disable etcd; rm -rf /var/lib/etcd
+
 for package in ${confirm_installed_packages[@]}; do apt-mark unhold ${package}; done
 
-k8s_installation_cmd="apt install -y containerd=${containerd_version} cri-tools=${cri_version}"
-for package in ${k8s_packages[@]}; do k8s_installation_cmd+=" ${package}=${k8s_packages_version}"; done
+k8s_installation_cmd="apt install -y containerd cri-tools=${K8S_TOOLS_VERSION:1}*"
+for package in ${k8s_packages[@]}; do k8s_installation_cmd+=" ${package}=${K8S_TOOLS_VERSION:1}*"; done
 ${k8s_installation_cmd}
+if [ $? != 0 ]; then
+  echo 'Fail to install a REQUIERMENT package; Kubernetes cluster setup process will be aborted now!'
+  exit 2
+fi
 
 for i in ${confirm_installed_packages[@]}; do
   if [ $all_k8s_packages_installed == 'true' ] && ! dpkg -l | grep ${i} &> /dev/null; then
