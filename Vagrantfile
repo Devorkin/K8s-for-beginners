@@ -44,9 +44,9 @@ SCRIPT
   unless Vagrant.has_plugin?("vagrant-hosts")
     raise 'vagrant-hosts is not installed! "vagrant plugin install vagrant-hosts" is needed to be ran first!'
   end
-  unless Vagrant.has_plugin?("vagrant-vbguest")
-    raise 'vagrant-vbguest is not installed! "vagrant plugin install vagrant-vbguest" is needed to be ran first!'
-  end
+  #unless Vagrant.has_plugin?("vagrant-vbguest")
+  #  raise 'vagrant-vbguest is not installed! "vagrant plugin install vagrant-vbguest" is needed to be ran first!'
+  #end
 
   # Default VM configuration
   config.vm.box = "ubuntu/jammy64"
