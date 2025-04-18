@@ -61,7 +61,8 @@ echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.
 chmod 644 /etc/apt/sources.list.d/kubernetes.list
 
 ## Install packages
-apt update; apt install -y $(echo $apt_packages_to_install)
+export DEBIAN_FRONTEND=noninteractive
+apt update; apt install -y $(echo $apt_packages_to_install) --no-install-recommends
 snap install yq
 
 # Cleanup after ETCD, as we only need its client-end
@@ -69,7 +70,7 @@ systemctl stop etcd; systemctl disable etcd; rm -rf /var/lib/etcd
 
 for package in ${confirm_installed_packages[@]}; do apt-mark unhold ${package}; done
 
-k8s_installation_cmd="apt install -y containerd cri-tools=${K8S_TOOLS_VERSION:1}*"
+k8s_installation_cmd="apt install -y containerd cri-tools=${K8S_TOOLS_VERSION:1}* --no-install-recommends"
 for package in ${k8s_packages[@]}; do k8s_installation_cmd+=" ${package}=${K8S_TOOLS_VERSION:1}*"; done
 ${k8s_installation_cmd}
 if [ $? != 0 ]; then
