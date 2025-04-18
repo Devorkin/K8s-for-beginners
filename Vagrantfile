@@ -7,7 +7,7 @@ Vagrant.configure("2") do |config|
   allow_additional_disk = false
   vm_ram_capacity = 4096
 
-  NUM_OF_MACHINES = 4
+  NUM_OF_MACHINES = 3
 
   PROVISION_CEPH = "false"
   if PROVISION_CEPH == "true"
