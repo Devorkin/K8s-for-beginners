@@ -1,0 +1,110 @@
+pipeline {
+  agent { label 'server4' }
+
+  environment {
+    GIT_REPO = 'git@github.com:Devorkin/K8s-for-begginers.git'
+    PROJECT_PATH = './K8s-for-begginers'
+  }
+
+  options {
+    timeout(time: 1, unit: 'HOURS')
+  }
+
+  parameters {
+    string(name: 'BRANCH_NAME', defaultValue: 'master', description: 'Git branch to clone')
+  }
+
+
+  stages {
+    stage('Preflight Check') {
+      steps {
+        script {
+          def binaries = [
+            'git'                 : 'git --version',
+            'vagrant'             : 'vagrant --version',
+            'VBoxManage'          : 'VBoxManage --version',
+          ]
+
+          def rv = false
+          binaries.each { key, value ->
+            rv = false
+            rv = sh(script: "which $key > /dev/null 2>&1", returnStatus: true) == 0
+            if (rv) {
+              sh "$value"
+            } else {
+              error "$key is not installed on this server!"
+            }
+          }
+        }
+      }
+    }
+
+    stage('Git Clone Project') {
+      steps {
+        sh "git clone --branch ${params.BRANCH_NAME} $GIT_REPO $PROJECT_PATH --depth 1"
+      }
+    }
+
+    stage('Install Vagrant plugins') {
+      steps {
+        script {
+          dir(PROJECT_PATH) {
+            sh 'vagrant plugin install vagrant-hosts'
+          }
+        }
+      }
+    }
+
+    stage('Check Vagrant project status') {
+      steps {
+        script {
+          dir(PROJECT_PATH) {
+            sh 'vagrant status'
+          }
+        }
+      }
+    }
+
+    stage('Bring up the Vagrant project') {
+      steps {
+        script {
+          dir(PROJECT_PATH) {
+            sh 'vagrant up'
+          }
+        }
+      }
+    }
+
+    stage('Confirm Vagrant project') {
+      steps {
+        script {
+          dir(PROJECT_PATH) {
+            sh 'vagrant status'
+          }
+        }
+      }
+    }
+  }
+
+  post {
+    always {
+      script {
+        ansiColor('xterm') {
+          dir(PROJECT_PATH) {
+            def output = sh(script: 'vagrant destroy --force', returnStdout: true, returnStatus: true)
+            if (output != 0) {
+              echo "❌ Vagrant failed to destroy"
+            }
+          }
+        }
+      }
+      deleteDir()
+    }
+    failure {
+      echo "Pipeline failed!"
+    }
+    success {
+      echo "Pipeline completed successfully!"
+    }
+  }
+}
