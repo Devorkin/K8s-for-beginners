@@ -44,9 +44,6 @@ SCRIPT
   unless Vagrant.has_plugin?("vagrant-hosts")
     raise 'vagrant-hosts is not installed! "vagrant plugin install vagrant-hosts" is needed to be ran first!'
   end
-  #unless Vagrant.has_plugin?("vagrant-vbguest")
-  #  raise 'vagrant-vbguest is not installed! "vagrant plugin install vagrant-vbguest" is needed to be ran first!'
-  #end
 
   # Default VM configuration
   config.vm.box = "ubuntu/jammy64"
@@ -82,6 +79,7 @@ SCRIPT
     end
     node.vm.hostname = 'master.tests.net'
     node.vm.network "private_network", ip: "192.168.57.110"
+    node.vm.network "forwarded_port", guest: "6443", host: "6443", protocol: "tcp"
     node.vm.network "forwarded_port", guest: "30208", host: "30208", protocol: "tcp"
     node.vm.network "forwarded_port", guest: "30209", host: "30209", protocol: "tcp"
     node.vm.provision :shell, inline: $set_environment_variables, run: "always", args: ARGS
