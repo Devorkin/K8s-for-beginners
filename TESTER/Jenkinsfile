@@ -2,7 +2,7 @@ pipeline {
   agent { label 'server4' }
 
   environment {
-    GIT_REPO = 'git@github.com:Devorkin/K8s-for-begginers.git'
+    GIT_REPO = 'https://github.com/Devorkin/K8s-for-begginers.git'
     PROJECT_PATH = './K8s-for-begginers'
   }
 
@@ -12,6 +12,7 @@ pipeline {
 
   parameters {
     string(name: 'BRANCH_NAME', defaultValue: 'master', description: 'Git branch to clone')
+    string(name: 'TROUBLESHOOT_SLEEP', defaultValue: '', description: 'Optional: sleep duration (e.g., 10m or 1h) for manual troubleshooting')
   }
 
 
@@ -39,6 +40,18 @@ pipeline {
       }
     }
 
+    stage('Vagrant & Virtualbox checks and dependecies') {
+      steps {
+        sh '''
+        set -x
+        vboxmanage natnetwork list | grep 192.168.57.0 &> /dev/null
+        if [ $? != 0 ]; then
+            natnetwork add --netname natnet1 --network "192.168.57.0/24" --enable
+        fi
+        '''
+      }
+    }
+
     stage('Git Clone Project') {
       steps {
         sh "git clone --branch ${params.BRANCH_NAME} $GIT_REPO $PROJECT_PATH --depth 1"
@@ -49,7 +62,10 @@ pipeline {
       steps {
         script {
           dir(PROJECT_PATH) {
-            sh 'vagrant plugin install vagrant-hosts'
+            sh '''
+            vagrant plugin install vagrant-hosts
+            sed -i 's/File.exists/File.exist/g' /home/yd_sa/.vagrant.d/gems/*/gems/vagrant-vbguest-*/lib/vagrant-vbguest/hosts/virtualbox.rb
+            '''
           }
         }
       }
@@ -81,6 +97,19 @@ pipeline {
           dir(PROJECT_PATH) {
             sh 'vagrant status'
           }
+        }
+      }
+    }
+
+    stage('Troubleshooting Pause') {
+      when {
+        expression { return params.TROUBLESHOOT_SLEEP?.trim() }
+      }
+      steps {
+        script {
+          echo "Manual troubleshooting pause started for ${params.TROUBLESHOOT_SLEEP}"
+          sh "sleep ${params.TROUBLESHOOT_SLEEP}"
+          echo "Troubleshooting pause ended."
         }
       }
     }
