@@ -1,1 +1,1 @@
-# K8s-for-begginers
+# K8s-for-beginners

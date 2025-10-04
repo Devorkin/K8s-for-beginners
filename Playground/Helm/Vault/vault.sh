@@ -25,7 +25,7 @@ done
 
 # Checking if the Helm custom values.yaml file is accessible
 CPWD=$(basename $(pwd))
-if [[ $CPWD == "K8s-for-begginers" ]] || [[ $CPWD == "vagrant" ]]; then
+if [[ $CPWD == "K8s-for-beginners" ]] || [[ $CPWD == "vagrant" ]]; then
   playground_dir="./Playground"
 elif [ -f ${VALUES_FILE_PATH} ]; then
     playground_dir="."

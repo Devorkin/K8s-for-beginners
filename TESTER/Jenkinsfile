@@ -2,8 +2,8 @@ pipeline {
   agent { label 'server4' }
 
   environment {
-    GIT_REPO = 'https://github.com/Devorkin/K8s-for-begginers.git'
-    PROJECT_PATH = './K8s-for-begginers'
+    GIT_REPO = 'https://github.com/Devorkin/K8s-for-beginners.git'
+    PROJECT_PATH = './K8s-for-beginners'
   }
 
   options {

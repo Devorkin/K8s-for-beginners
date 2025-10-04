@@ -45,7 +45,7 @@ sed -i.bak "/swap/ s/^/#/" /etc/fstab
 
 # Cleanup old Vagrant VMs cache
 if [ -f $shared_path/k8s_cluster_token.sh ]; then rm -f $shared_path/k8s_cluster_token.sh; fi
-if [ -f $shared_path/vagrant_k8s_for_begginers.exitcode ]; then rm -f $shared_path/vagrant_k8s_for_begginers.exitcode; fi
+if [ -f $shared_path/vagrant_k8s_for_beginners.exitcode ]; then rm -f $shared_path/vagrant_k8s_for_beginners.exitcode; fi
 
 # Generate a new CA Authority SSL certificate
 if [[ ${PROVISION_SELF_SIGNED_CA_CRT} == "true" ]]; then
@@ -232,9 +232,9 @@ fi
 kubeadm token create --print-join-command | sed "s/${ip_addr}/$(hostname)/" > $shared_path/k8s_cluster_token.sh
 
 if grep $(hostname) $shared_path/k8s_cluster_token.sh &> /dev/null; then
-  echo '0' > $shared_path/vagrant_k8s_for_begginers.exitcode
+  echo '0' > $shared_path/vagrant_k8s_for_beginners.exitcode
 else
   echo -e "[ERR]\tError has occured and K8s cluster token was not created well, please fix it"
   echo 'Or manually add new worker nodes using: `kubeadm token create --print-join-command`'
-  echo '1' > $shared_path/vagrant_k8s_for_begginers.exitcode
+  echo '1' > $shared_path/vagrant_k8s_for_beginners.exitcode
 fi

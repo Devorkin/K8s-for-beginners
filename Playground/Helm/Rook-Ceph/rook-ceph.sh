@@ -20,7 +20,7 @@ else
   CPWD=$(basename $(pwd))
   if [ -f Helm/Rook-Ceph/values.yaml ]; then
     playground_dir="."
-  elif [[ $CPWD == "K8s-for-begginers" ]]; then
+  elif [[ $CPWD == "K8s-for-beginners" ]]; then
     playground_dir="./Playground"
   else
     read -p 'Enter the path to the Playground directory: ' playground_dir

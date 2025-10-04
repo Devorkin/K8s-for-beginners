@@ -23,7 +23,7 @@ if [[ ! -d $shared_path ]]; then
 fi
 
 # EXIT IF MASTER NODE AIN'T WORKING PROPERLLY
-return_value=$(cat $shared_path/vagrant_k8s_for_begginers.exitcode)
+return_value=$(cat $shared_path/vagrant_k8s_for_beginners.exitcode)
 if [ $return_value == 1 ]; then
   echo "K8s Master node failed to provision - please fix it; and then re-run `vagrant up` per each requested node"
   exit 1
